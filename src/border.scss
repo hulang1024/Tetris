@@ -1,0 +1,14 @@
+.bordered {
+  padding: 2px;
+  border: 2px solid #999;
+  border-radius: 4px;
+  background: #151515;
+
+  & > .border {
+    position: relative;
+    width: calc(100% - 5px);
+    height: calc(100% - 5px);
+    border: 2.5px solid #b1f6e8;
+    border-radius: 1px;
+  }
+}

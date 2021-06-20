@@ -1,0 +1,69 @@
+@import './block.scss';
+@import './border.scss';
+@import './map.scss';
+
+html,body {
+  width: 100%;
+  height: 100%;
+  margin: 0px;
+  padding: 0px;
+  background: #ccc;
+  overflow: hidden;
+}
+
+.window {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin: 0 auto;
+  width: max-content;
+
+  .block-row {
+    display: flex;
+    flex-direction: row;
+    margin-bottom: 4px;
+    height: 70px;
+
+    margin-left: -4px;
+    & > div {
+      flex: 1;
+      margin-left: 4px;
+    }
+
+    .clear-lines {
+      color: #fff;
+      font-size: 20px;
+
+      .border {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .num {
+        font-size: 22px;
+        letter-spacing: 1px;
+      }
+    }
+
+    .next-block {
+      .border {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+
+        .block {
+          position: relative;
+          left: 0;
+          top: 1px;
+          transform: unset;
+        }
+      }
+    }
+  }
+}
