@@ -99,22 +99,22 @@ export class GameMap {
       }
       cb();
     }, 16 * 10);
-	}
+  }
 
   findFullLineIndexs() {
-	  let idxs = [];
-	  let isFull;
-	  for(let r = 0; r < this.rows; r++) {
-		  isFull = true;
-      for(let c = 0; isFull && c < this.cols; c++) {
+    let idxs = [];
+    let isFull;
+    for (let r = 0; r < this.rows; r++) {
+      isFull = true;
+      for (let c = 0; isFull && c < this.cols; c++) {
         isFull = !this.isEmpty(r, c);
       }
-      if(isFull) {
+      if (isFull) {
         idxs.push(r);
       }
     }
-	  return idxs;
-	}
+    return idxs;
+  }
 
   printState() {
     for (let r = 0; r < this.rows; r++) {
@@ -129,8 +129,8 @@ export class GameMap {
   isEmpty(row: number, col: number) {
     return this.state[row][col] === null;
   }
-
+  
   isInBounds(row: number, col: number) {
-	  return (0 <= row && row < this.rows) && (0 <= col && col < this.cols);
-	}
+    return (0 <= row && row < this.rows) && (0 <= col && col < this.cols);
+  }
 }
