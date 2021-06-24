@@ -11,7 +11,21 @@ export class GameMap {
     this.rows = rows;
     this.cols = cols;
 
-    const el = this.el = document.querySelector('.map');
+    const el = this.el = document.createElement('div');
+    el.classList.add('map', 'bordered');
+
+    const borderEl = document.createElement('div');
+    borderEl.classList.add('border');
+    el.appendChild(borderEl);
+
+    const backgroundEl = document.createElement('div');
+    backgroundEl.classList.add('background');
+    borderEl.appendChild(backgroundEl);
+
+    const blockLayerEl = document.createElement('div');
+    blockLayerEl.classList.add('block-layer');
+    borderEl.appendChild(blockLayerEl);
+
     el.style.setProperty('--width', `${blockCellSize * cols}px`);
     el.style.setProperty('--height', `${blockCellSize * rows}px`);
     el.style.setProperty('--cell-size', `${blockCellSize}px`);
@@ -34,7 +48,7 @@ export class GameMap {
     }
     svg.innerHTML = html;
 
-    el.firstElementChild.children[0].appendChild(svg);
+    backgroundEl.appendChild(svg);
   }
 
   addBlock(block: Block) {

@@ -8,25 +8,66 @@
   <title>俄罗斯方块</title>
 </head>
 <body>
-  <div class="window">
-    <div class="block-row">
-      <div class="clear-lines bordered">
-        <div class="border">
-          <div>LINE</div>
-          <div class="num">000</div>
-        </div>
-      </div>
-      <div class="next-block bordered">
-        <div class="border"></div>
-      </div>
-    </div>
-    <div class="map bordered">
-      <div class="border">
-        <div class="background"></div>
-        <div class="block-layer"></div>
-      </div>
-    </div>
+
+  <div class="main">
+
+    <div class="pause-overlay">游戏暂停</div>
   </div>
+  <table class="key-table" border>
+    <caption>游戏按键</caption>
+    <thead>
+      <tr>
+        <th>按键</th>
+        <th>动作</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>
+          <div class="key">Enter</div>
+        </td>
+        <td>暂停/继续游戏</td>
+      </tr>
+      <tr>
+        <td>
+          <div class="key">↑</div>
+          <span>/</span>
+          <div class="key">W</div>
+        </td>
+        <td>旋转</td>
+      </tr>
+      <tr>
+        <td>
+          <div class="key">↓</div>
+          <span>/</span>
+          <div class="key">S</div>
+        </td>
+        <td>下落</td>
+      </tr>
+      <tr>
+        <td>
+          <div class="key">←</div>
+          <span>/</span>
+          <div class="key">A</div>
+        </td>
+        <td>左移</td>
+      </tr>
+      <tr>
+        <td>
+          <div class="key">→</div>
+          <span>/</span>
+          <div class="key">D</div>
+        </td>
+        <td>右移</td>
+      </tr>
+      <tr>
+        <td>
+          <div class="key"></div>
+        </td>
+        <td>迅速下落</td>
+      </tr>
+    </tbody>
+  </table>
   
   <script src="bundle.js"></script>
 </body>

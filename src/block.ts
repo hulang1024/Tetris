@@ -1,5 +1,6 @@
 import { GameMap } from "./map";
 
+// 各个种类方块四个方向的编码，高16位编码旋转掩码，低16位编码形状扫描码
 const blockTable = [
   [0xEE206C00, 0x66E04620, 0x8EE006C0, 0xECC08C40],   //S
   [0xE660C600, 0x2EE02640, 0xEE800C60, 0xCCE04C80],   //Z
@@ -27,6 +28,7 @@ export enum Dir {
 }
 
 export class Block {
+  // 当前在网格中的位置
   gridRow: number;
   gridCol: number;
   
@@ -35,9 +37,11 @@ export class Block {
 
   map: GameMap;
 
+  // 种类
   private _type: number;
   get type() { return this._type; }
 
+  // 方向
   private _dir: Dir;
   get dir() { return this._dir; }
 
@@ -52,7 +56,7 @@ export class Block {
     el.classList.add('block');
     el.style.setProperty('--color', blockColorTable[type]);
 
-    eachCells(this.value, (r, c) => {
+    eachCells(this.value, () => {
       const cell = createBlockCell(blockCellSize);
       this.cells.push(cell);
       el.appendChild(cell);
@@ -81,6 +85,7 @@ export class Block {
   }
 
   fall() {
+    console.log('fall', this.gridRow)
     this.map.easeBlockState(this);
     if (this.gridRow < 0 || this.canMove(this.gridRow + 1, this.gridCol)) {
       this.setPosition(this.gridRow + 1, this.gridCol);

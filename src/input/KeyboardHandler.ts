@@ -16,6 +16,12 @@ export default class KeyboardHandler {
 
   private inputKeyFromKeyboardEvent(event: KeyboardEvent): InputKey {
     if (event.key !== undefined) {
+      if (event.key.length == 1) {
+        const keyCharCode = event.key.toUpperCase().charCodeAt(0);
+        if (65 <= keyCharCode && keyCharCode <= 90) {
+          return (InputKey.A + (keyCharCode - 65)) as InputKey;
+        }
+      }
       switch (event.key) {
         case ' ':
           return InputKey.Space;
@@ -33,6 +39,9 @@ export default class KeyboardHandler {
           return InputKey.Down;
       }
     } else if (event.keyCode !== undefined) {
+      if (65 <= event.keyCode && event.keyCode <= 90) {
+        return (InputKey.A + (event.keyCode - 65)) as InputKey;
+      }
       switch (event.keyCode) {
         case 32:
           return InputKey.Space;
