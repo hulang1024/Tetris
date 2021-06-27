@@ -85,9 +85,8 @@ export class Block {
   }
 
   fall() {
-    console.log('fall', this.gridRow)
     this.map.easeBlockState(this);
-    if (this.gridRow < 0 || this.canMove(this.gridRow + 1, this.gridCol)) {
+    if (this.canMove(this.gridRow + 1, this.gridCol)) {
       this.setPosition(this.gridRow + 1, this.gridCol);
       this.map.setBlockState(this);
       return true;
@@ -100,6 +99,9 @@ export class Block {
   canMove(gridRow: number, gridCol: number) {
     let ret: boolean | null = null;
     eachCells(this.value, (r, c) => {
+      if (this.gridRow + r < 0) {
+        return;
+      }
       if (ret === null
         && !(this.map.isInBounds(gridRow + r, gridCol + c)
           && this.map.isEmpty(gridRow + r, gridCol + c))) {

@@ -5,7 +5,12 @@ export class GameMap {
   rows: number;
   cols: number;
   state: (number | null)[][] = [];
+  blocks: Block[] = [];
   cells: (SVGSVGElement | null)[][] = [];
+
+  get blockLayer() {
+    return this.el.firstElementChild.children[1];
+  }
 
   constructor(rows: number, cols: number) {
     this.rows = rows;
@@ -53,7 +58,8 @@ export class GameMap {
 
   addBlock(block: Block) {
     this.setBlockState(block, block.type);
-    this.el.firstElementChild.children[1].appendChild(block.el);
+    this.blocks.push(block);
+    this.blockLayer.appendChild(block.el);
   }
 
   easeBlockState(block: Block) {
@@ -76,8 +82,10 @@ export class GameMap {
     if (idxs.length) {
       startClear();
       this.clearLines(idxs, cb);
+      return true;
     } else {
       cb();
+      return false;
     }
   }
 
@@ -89,9 +97,22 @@ export class GameMap {
         if (cell) {
           cell.parentElement.removeChild(cell);
           this.cells[r][c] = null;
+
+          const block = this.blocks.find((b) => b.cells.find((c) => c == cell));
+          if (block) {
+            const ci = block.cells.findIndex((c) => c == cell);
+            block.cells.splice(ci, 1);
+          }
         }
       }
     }
+    
+    this.blocks.forEach((block, i) => {
+      if (block.cells.length == 0) {
+        block.el.parentElement.removeChild(block.el);
+        this.blocks.splice(i, 1);
+      }
+    });
 
     for(let i = 0; i < lineIndexs.length; i++) {
       for(let r = lineIndexs[i] - 1; r >= 0; r--) {
@@ -138,6 +159,20 @@ export class GameMap {
       }
       console.log(s + '\n');
     }
+  }
+
+  clear() {
+    for(let r = 0; r < this.rows; r++) {
+      for (let c = 0; c < this.cols; c++) {
+        this.state[r][c] = null;
+        this.cells[r][c] = null;
+      }
+    }
+
+    this.blocks.forEach((block) => {
+      block.el.parentElement.removeChild(block.el);
+    });
+    this.blocks = [];
   }
 
   isEmpty(row: number, col: number) {

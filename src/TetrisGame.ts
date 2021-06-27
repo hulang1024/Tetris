@@ -5,12 +5,11 @@ import { GameMap } from "./map";
 import { TetrisWindow } from "./TetrisWindow";
 import Bindable from "./utils/bindables/Bindable";
 import BindableBool from "./utils/bindables/BindableBool";
-import { randomInt } from "./utils/random";
-import { Alea } from 'seedrandom';
 import { BlockGenerator } from "./blockGenerator";
 
 export class TetrisGame extends Game {
   isPause = new BindableBool(true);
+  isOver = new BindableBool(false);
   readonly gameMap = new GameMap(20, 10);
   currentBlock: Block;
   nextBlock = new Bindable<Block>();
@@ -32,6 +31,10 @@ export class TetrisGame extends Game {
     this.isPause.addAndRunOnce((isPause) => {
       pauseOverlay.classList[isPause ? 'add' : 'remove']('show');
     });
+    const overOverlay = document.querySelector('.main .over-overlay');
+    this.isOver.addAndRunOnce((isOver) => {
+      overOverlay.classList[isOver ? 'add' : 'remove']('show');
+    });
   }
 
   createBlock() {
@@ -43,11 +46,12 @@ export class TetrisGame extends Game {
   updateAccTime = 0;
   
   onUpdate(dt: number) {
-    if (this.isPause.value) {
+    if (this.isPause.value || this.isOver.value) {
       return;
     }
+
     this.updateAccTime += dt;
-    if (this.updateAccTime * 1000 < 200) {
+    if (this.updateAccTime * 1000 < 300) {
       return;
     }
     this.updateAccTime = 0;
@@ -55,19 +59,36 @@ export class TetrisGame extends Game {
     if (this.lineClearing) {
       return;
     }
+
     const { gameMap } = this;
     if (!this.currentBlock.fall()) {
-      this.currentBlock = this.nextBlock.value;
-      console.log('add block')
-      gameMap.addBlock(this.currentBlock);
-      this.nextBlock.value = this.createBlock();
-      gameMap.checkClearLine(() => {
+      const canClearLine = gameMap.checkClearLine(() => {
         this.lineClearing = true;
         this.clearLineCount.value++;
       }, () => {
         this.lineClearing = false;
       });
+      if (canClearLine || this.currentBlock.gridRow > 0) {
+        this.currentBlock = this.nextBlock.value;
+        gameMap.addBlock(this.currentBlock);
+        this.nextBlock.value = this.createBlock();
+      } else {
+        this.isOver.value = true;
+      }
     }
+  }
+
+  restart() {
+    this.gameMap.clear();
+    this.lineClearing = false;
+    this.clearLineCount.value = 0;
+    this.blockCount = 0;
+    this.blockGenerator.reset();
+    this.currentBlock = this.createBlock();
+    this.nextBlock.value = this.createBlock();
+    this.gameMap.addBlock(this.currentBlock);
+    this.isPause.value = false;
+    this.isOver.value = false;
   }
   
   onKeyDown(key: InputKey, event?: KeyboardEvent) {
@@ -93,7 +114,11 @@ export class TetrisGame extends Game {
         currentBlock.left(-1);
         break;
       case InputKey.Enter:
-        this.isPause.toggle();
+        if (this.isOver.value) {
+          this.restart();
+        } else {
+          this.isPause.toggle();
+        }
         break;
       case InputKey.Space:
         while (currentBlock.fall());

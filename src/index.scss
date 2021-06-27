@@ -17,6 +17,7 @@ html,body {
   top: 50%;
   display: flex;
   transform: translate(-50%, -50%);
+  user-select: none;
 
   .tetris-window {
     position: relative;
@@ -76,7 +77,8 @@ html,body {
     }
   }
 
-  .pause-overlay {
+  .pause-overlay,
+  .over-overlay {
     position: absolute;
     left: 50%;
     top: 50%;

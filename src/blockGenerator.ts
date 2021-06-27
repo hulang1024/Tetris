@@ -16,4 +16,8 @@ export class BlockGenerator {
     }
     return this.blockTypes[index];
   }
+
+  reset() {
+    this.blockTypes = [];
+  }
 }
