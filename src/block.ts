@@ -99,12 +99,12 @@ export class Block {
   canMove(gridRow: number, gridCol: number) {
     let ret: boolean | null = null;
     eachCells(this.value, (r, c) => {
-      if (this.gridRow + r < 0) {
+      const gr = this.gridRow + r;
+      const gc = this.gridCol + c;
+      if (gr < 0) {
         return;
       }
-      if (ret === null
-        && !(this.map.isInBounds(gridRow + r, gridCol + c)
-          && this.map.isEmpty(gridRow + r, gridCol + c))) {
+      if (ret === null && !(this.map.isInBounds(gr, gc) && this.map.isEmpty(gr, gc))) {
         ret = false;
       }
     });
