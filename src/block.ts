@@ -33,7 +33,7 @@ export class Block {
   gridCol: number;
   
   el: HTMLElement;
-  cells: SVGSVGElement[] = [];
+  cells: HTMLElement[] = [];
 
   map: GameMap;
 
@@ -99,8 +99,8 @@ export class Block {
   canMove(gridRow: number, gridCol: number) {
     let ret: boolean | null = null;
     eachCells(this.value, (r, c) => {
-      const gr = this.gridRow + r;
-      const gc = this.gridCol + c;
+      const gr = gridRow + r;
+      const gc = gridCol + c;
       if (gr < 0) {
         return;
       }
@@ -219,8 +219,14 @@ export class Block {
   }
 }
 
-export function setCellPosition(cell: SVGSVGElement, row: number, col: number) {
+export function setCellPosition(cell: HTMLElement, row: number, col: number) {
   cell.style.setProperty('--x', `${col * blockCellSize}px`);
+
+  if (row < 0) {
+    cell.classList.add('hide')
+  } else if (cell.classList.contains('hide')) {
+    cell.classList.remove('hide')
+  }
   cell.style.setProperty('--y', `${row * blockCellSize}px`);
 }
 
@@ -242,26 +248,12 @@ export function eachCells(
 }
 
 function createBlockCell(size: number, color?: string) {
-  const strokeWidth = 1;
-  size -= strokeWidth * 2;
+  const el = document.createElement('div');
+  el.classList.add('cell');
+  el.style.setProperty('--size', `${size}px`);
 
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.classList.add('cell');
-  svg.style.setProperty('--stroke-width', `${strokeWidth}px`);
   if (color) {
-    svg.style.setProperty('--color', color);
+    el.style.setProperty('--color', color);
   }
-  svg.setAttribute('width', size.toString());
-  svg.setAttribute('height', size.toString());
-
-  const cornerSize = 2;
-  const rect2Size = size - cornerSize * 2;
-  const html = `
-    <rect class="rect1" x="0" y="0" width="${size}" height="${size}" />
-    <rect class="rect2" x="${cornerSize}" y="${cornerSize}" width="${rect2Size}" height="${rect2Size}" />
-    <rect class="rect-corner" x="${cornerSize}" y="${cornerSize}" width="${cornerSize * 2}" height="${cornerSize}" />
-    <rect class="rect-corner" x="${cornerSize}" y="${cornerSize}" width="${cornerSize}" height="${cornerSize * 2}" />  
-  `;
-  svg.innerHTML = html;
-  return svg;
+  return el;
 }

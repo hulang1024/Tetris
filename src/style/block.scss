@@ -1,0 +1,19 @@
+.block {
+  & > .cell {
+    position: absolute;
+    top: 1px;
+    left: 1px;
+    width: calc(var(--size) - 1px);
+    height: calc(var(--size) - 1px);
+    background-color: var(--color);
+    transform: translate(var(--x), var(--y));
+    border-radius: 2px;
+    box-shadow:
+      0px 0px 4px 0px var(--color);
+    box-sizing: border-box;
+
+    &.hide {
+      opacity: 0;
+    }
+  }
+}

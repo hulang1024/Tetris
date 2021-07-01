@@ -23,7 +23,7 @@ function javascript() {
 }
 
 function css() {
-  return src('src/index.scss')
+  return src('src/style/index.scss')
     .pipe(sass().on('error', sass.logError))
     .pipe(dest('dist'));
 }

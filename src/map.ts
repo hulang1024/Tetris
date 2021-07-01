@@ -6,7 +6,7 @@ export class GameMap {
   cols: number;
   state: (number | null)[][] = [];
   blocks: Block[] = [];
-  cells: (SVGSVGElement | null)[][] = [];
+  cells: (HTMLElement | null)[][] = [];
 
   get blockLayer() {
     return this.el.firstElementChild.children[1];
@@ -33,7 +33,6 @@ export class GameMap {
 
     el.style.setProperty('--width', `${blockCellSize * cols}px`);
     el.style.setProperty('--height', `${blockCellSize * rows}px`);
-    el.style.setProperty('--cell-size', `${blockCellSize}px`);
 
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('width', '100%');

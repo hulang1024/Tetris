@@ -6,6 +6,8 @@ import { TetrisWindow } from "./TetrisWindow";
 import Bindable from "./utils/bindables/Bindable";
 import BindableBool from "./utils/bindables/BindableBool";
 import { BlockGenerator } from "./blockGenerator";
+import { Action } from "./action";
+import Gamepad, { GamepadButton } from "./gamepad";
 
 export class TetrisGame extends Game {
   isPause = new BindableBool(true);
@@ -18,6 +20,7 @@ export class TetrisGame extends Game {
   blockCount = 0;
   tetrisWindow = new TetrisWindow(this.gameMap, this.nextBlock, this.clearLineCount);
   blockGenerator: BlockGenerator;
+  gamepad: Gamepad;
 
   constructor(blockGenerator: BlockGenerator) {
     super();
@@ -35,6 +38,33 @@ export class TetrisGame extends Game {
     this.isOver.addAndRunOnce((isOver) => {
       overOverlay.classList[isOver ? 'add' : 'remove']('show');
     });
+
+    this.gamepad = new Gamepad({
+      onPress: (button) => {
+        let action = null;
+        switch (button) {
+          case GamepadButton.Up:
+          case GamepadButton.Rotate:
+            action = Action.Rotate;
+            break;
+          case GamepadButton.Down:
+            action = Action.Down;
+            break;
+          case GamepadButton.Right:
+            action = Action.Right;
+            break;
+          case GamepadButton.Left:
+            action = Action.Left;
+            break;
+          case GamepadButton.Enter:
+            action = Action.Enter;
+            break;
+        }
+        if (action) {
+          this.onAction(action)
+        }
+      }
+    })
   }
 
   createBlock() {
@@ -46,12 +76,14 @@ export class TetrisGame extends Game {
   updateAccTime = 0;
   
   onUpdate(dt: number) {
-    if (this.isPause.value || this.isOver.value) {
+    if (this.isOver.value || this.isPause.value) {
       return;
     }
 
+    this.gamepad.onUpdate()
+
     this.updateAccTime += dt;
-    if (this.updateAccTime * 1000 < 300) {
+    if (this.updateAccTime * 1000 < 20 * 16.666) {
       return;
     }
     this.updateAccTime = 0;
@@ -60,15 +92,15 @@ export class TetrisGame extends Game {
       return;
     }
 
-    const { gameMap } = this;
-    if (!this.currentBlock.fall()) {
+    const { gameMap, currentBlock } = this;
+    if (!currentBlock.fall()) {
       const canClearLine = gameMap.checkClearLine(() => {
         this.lineClearing = true;
         this.clearLineCount.value++;
       }, () => {
         this.lineClearing = false;
       });
-      if (canClearLine || this.currentBlock.gridRow > 0) {
+      if (canClearLine || currentBlock.gridRow > 0) {
         this.currentBlock = this.nextBlock.value;
         gameMap.addBlock(this.currentBlock);
         this.nextBlock.value = this.createBlock();
@@ -90,39 +122,67 @@ export class TetrisGame extends Game {
     this.isPause.value = false;
     this.isOver.value = false;
   }
-  
-  onKeyDown(key: InputKey, event?: KeyboardEvent) {
-    if (this.isPause.value && key != InputKey.Enter) {
+
+  onAction(action: Action) {
+    if (this.isPause.value && action != Action.Enter) {
       return;
     }
     const { currentBlock } = this;
-    switch (key) {
-      case InputKey.Up:
-      case InputKey.W:
+    switch (action) {
+      case Action.Rotate:
         currentBlock.rotate();
         break;
-      case InputKey.Down:
-      case InputKey.S:
-        currentBlock.fall();
-        break;
-      case InputKey.Right:
-      case InputKey.D:
-        currentBlock.left(+1);
-        break;
-      case InputKey.Left:
-      case InputKey.A:
+      case Action.Left:
         currentBlock.left(-1);
         break;
-      case InputKey.Enter:
+      case Action.Right:
+        currentBlock.left(+1);
+        break;
+      case Action.Down:
+        currentBlock.fall();
+        break;
+      case Action.Fall:
+        while (currentBlock.fall());
+        break;
+      case Action.Enter:
         if (this.isOver.value) {
           this.restart();
         } else {
           this.isPause.toggle();
         }
         break;
+    }
+  }
+  
+  onKeyDown(key: InputKey, event?: KeyboardEvent) {
+    let action = null;
+    switch (key) {
+      case InputKey.Up:
+      case InputKey.W:
+      case InputKey.J:
+        action = Action.Rotate;
+        break;
+      case InputKey.Down:
+      case InputKey.S:
+        action = Action.Down;
+        break;
+      case InputKey.Right:
+      case InputKey.D:
+        action = Action.Right;
+        break;
+      case InputKey.Left:
+      case InputKey.A:
+        action = Action.Left;
+        break;
+      case InputKey.Enter:
+        action = Action.Enter;
+        break;
       case InputKey.Space:
-        while (currentBlock.fall());
-          break;
+        action = Action.Fall;
+        break;
+    }
+    if (action) {
+      this.onAction(action)
     }
   }
 }
