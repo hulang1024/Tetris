@@ -1,11 +1,12 @@
 import * as seedrandom from "seedrandom";
 
 export class BlockGenerator {
+  seed: string;
   private prng: any;
   private blockTypes: number[] = [];
 
   constructor(seed: string) {
-    this.prng = new (seedrandom as any)(seed);
+    this.reset(seed);
   }
 
   getBlockType(index: number) {
@@ -17,7 +18,9 @@ export class BlockGenerator {
     return this.blockTypes[index];
   }
 
-  reset() {
+  reset(seed: string) {
+    this.seed = seed;
     this.blockTypes = [];
+    this.prng = new (seedrandom as any)(seed);
   }
 }

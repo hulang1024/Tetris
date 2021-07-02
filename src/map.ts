@@ -76,10 +76,10 @@ export class GameMap {
     });
   }
 
-  checkClearLine(startClear: () => void, cb: () => void) {
+  checkClearLine(startClear: (lineCount: number) => void, cb: () => void) {
     const idxs = this.findFullLineIndexs();
     if (idxs.length) {
-      startClear();
+      startClear(idxs.length);
       this.clearLines(idxs, cb);
       return true;
     } else {
