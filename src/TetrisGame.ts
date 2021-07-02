@@ -7,7 +7,6 @@ import Bindable from "./utils/bindables/Bindable";
 import BindableBool from "./utils/bindables/BindableBool";
 import { BlockGenerator } from "./blockGenerator";
 import { Action } from "./action";
-import Gamepad, { GamepadButton } from "./gamepad";
 import ReplayRecorder from "./replay/ReplayRecorder";
 import { Replay, ReplayFrame } from "./replay/replay";
 
@@ -23,7 +22,6 @@ export class TetrisGame extends Game {
   blockCount = 0;
   tetrisWindow = new TetrisWindow(this.gameMap, this.nextBlock, this.clearLineCount);
   blockGenerator: BlockGenerator;
-  gamepad: Gamepad;
 
   gameStartTimestamp: number = 0;
   replayRecoder: ReplayRecorder = new ReplayRecorder();
@@ -42,33 +40,6 @@ export class TetrisGame extends Game {
     this.isOver.changed.add((isOver: boolean) => {
       overOverlay.classList[isOver ? 'add' : 'remove']('show');
     });
-
-    this.gamepad = new Gamepad({
-      onPress: (button) => {
-        let action = null;
-        switch (button) {
-          case GamepadButton.Up:
-          case GamepadButton.Rotate:
-            action = Action.Rotate;
-            break;
-          case GamepadButton.Down:
-            action = Action.Down;
-            break;
-          case GamepadButton.Right:
-            action = Action.Right;
-            break;
-          case GamepadButton.Left:
-            action = Action.Left;
-            break;
-          case GamepadButton.Enter:
-            action = Action.Enter;
-            break;
-        }
-        if (action) {
-          this.onAction(action)
-        }
-      }
-    })
   }
 
   createBlock() {
@@ -90,15 +61,13 @@ export class TetrisGame extends Game {
       while (this.replayNowFrameIndex < frames.length) {
         const frame = frames[this.replayNowFrameIndex];
         if (now - this.gameStartTimestamp > frame.time) {
-          this.onAction(frame.action);
+          this.doBlockAction(frame.action);
           this.replayNowFrameIndex++;
         } else {
           break;
         }
       }
     }
-
-    this.gamepad.onUpdate()
 
     this.updateAccTime += dt;
     if (this.updateAccTime * 1000 < 20 * 16.666) {
@@ -147,9 +116,9 @@ export class TetrisGame extends Game {
     } else {
       this.blockGenerator.reset(new Date().getTime().toString());
       const replay = new Replay()
-      replay.prngSeed = this.blockGenerator.seed
+      replay.prngSeed = this.blockGenerator.seed;
       this.replay = replay;
-      this.replayRecoder.setReplay(replay)
+      this.replayRecoder.setReplay(replay);
     }
 
     this.currentBlock = this.createBlock();
@@ -175,6 +144,24 @@ export class TetrisGame extends Game {
     if ((this.isPause.value && action != Action.Enter) || this.lineClearing) {
       return;
     }
+    switch (action) {
+      case Action.Enter:
+        if (this.isOver.value) {
+          this.restart();
+        } else {
+          this.isPause.toggle();
+        }
+        break;
+      default:
+        if (this.isReplayMode) {
+          return;
+        }
+        this.doBlockAction(action);
+        break;
+    }
+  }
+
+  doBlockAction(action: Action) {
     const { currentBlock } = this;
     switch (action) {
       case Action.Rotate:
@@ -192,47 +179,17 @@ export class TetrisGame extends Game {
       case Action.Fall:
         while (currentBlock.fall());
         break;
-      case Action.Enter:
-        if (this.isOver.value) {
-          this.restart();
-        } else {
-          this.isPause.toggle();
-        }
-        break;
     }
-
-    if (!this.isReplayMode && action && action != Action.Enter) {
-      this.replayRecoder.record(
-        new ReplayFrame(new Date().getTime() - this.gameStartTimestamp, action));
+    if (!this.isReplayMode) {
+      const replayFrame = new ReplayFrame(
+        new Date().getTime() - this.gameStartTimestamp, action);
+      this.replayRecoder.record(replayFrame);
     }
   }
   
   onKeyDown(key: InputKey) {
-    let action = null;
+    super.onKeyDown(key);
     switch (key) {
-      case InputKey.Up:
-      case InputKey.W:
-      case InputKey.J:
-        action = Action.Rotate;
-        break;
-      case InputKey.Down:
-      case InputKey.S:
-        action = Action.Down;
-        break;
-      case InputKey.Right:
-      case InputKey.D:
-        action = Action.Right;
-        break;
-      case InputKey.Left:
-      case InputKey.A:
-        action = Action.Left;
-        break;
-      case InputKey.Enter:
-        action = Action.Enter;
-        break;
-      case InputKey.Space:
-        action = Action.Fall;
-        break;
       case InputKey.R:
         this.isPause.value = true;
         this.isReplayMode = false;
@@ -243,18 +200,12 @@ export class TetrisGame extends Game {
         if (this.replay) {
           this.isPause.value = true;
           this.isReplayMode = true;
-          console.log(this.replay)
+          console.log(this.replay);
           this.restart();
         } else {
           alert('还没有回放数据，请先游戏');
         }
         break;
-    }
-    if (action) {
-      if (action != Action.Enter && this.isReplayMode) {
-        return;
-      }
-      this.onAction(action)
     }
   }
 }
