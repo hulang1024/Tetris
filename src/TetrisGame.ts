@@ -9,43 +9,56 @@ import { BlockGenerator } from "./blockGenerator";
 import { Action } from "./action";
 import ReplayRecorder from "./replay/ReplayRecorder";
 import { Replay, ReplayFrame } from "./replay/replay";
+import { ScoreProcessor } from "./scoring/ScoreProcessor";
+import { levelLinesTable, levelSpeedTable } from "./level";
 
 export class TetrisGame extends Game {
   isPause = new BindableBool(true);
   isOver = new BindableBool(true);
-  isReplayMode = false;
-  readonly gameMap = new GameMap(20, 10);
+
+  gameMap: GameMap;
   currentBlock: Block;
   nextBlock = new Bindable<Block>();
-  clearLineCount = new Bindable<number>(0);
-  lineClearing = false;
   blockCount = 0;
-  tetrisWindow = new TetrisWindow(this.gameMap, this.nextBlock, this.clearLineCount);
+  tetrisWindow: TetrisWindow;
   blockGenerator: BlockGenerator;
 
+  level = new Bindable<number>(0);
+  levelSpeedFrames: number;
+  scoreProcessor: ScoreProcessor = new ScoreProcessor();
+  isLineClearing = false;
+
+  isReplayMode = false;
   gameStartTimestamp: number = 0;
   replayRecoder: ReplayRecorder = new ReplayRecorder();
   replay: Replay;
   replayNowFrameIndex: number = 0;
 
-  constructor(blockGenerator: BlockGenerator) {
+  constructor() {
     super();
-    this.blockGenerator = blockGenerator;
+    this.blockGenerator = new BlockGenerator(new Date().getTime().toString());
+    const mapHeight = document.body.offsetHeight - 164 - 16;
+    this.gameMap = new GameMap(20, 10, Math.min(24, Math.floor(mapHeight / 20)));
+    this.tetrisWindow = new TetrisWindow(
+      this.gameMap, this.nextBlock, this.level, this.scoreProcessor);
 
-    const pauseOverlay = document.querySelector('.main .pause-overlay');
-    this.isPause.addAndRunOnce((isPause) => {
-      pauseOverlay.classList[isPause ? 'add' : 'remove']('show');
+    this.level.addAndRunOnce((level: number) => {
+      console.log('level', level);
+      this.levelSpeedFrames = levelSpeedTable[level];
     });
-    const overOverlay = document.querySelector('.main .over-overlay');
+
+    this.isPause.addAndRunOnce((isPause) => {
+      this.gameMap.pauseOverlay.classList[isPause ? 'add' : 'remove']('show');
+    });
     this.isOver.changed.add((isOver: boolean) => {
-      overOverlay.classList[isOver ? 'add' : 'remove']('show');
+      this.gameMap.overOverlay.classList[isOver ? 'add' : 'remove']('show');
     });
   }
 
   createBlock() {
     const type = this.blockGenerator.getBlockType(this.blockCount++);
     const dir = typicalBlockDirTable[type];
-    return new Block(type, dir, -3, (this.gameMap.cols - 4) / 2, this.gameMap);
+    return new Block(type, dir, 0, (this.gameMap.cols - 4) / 2, this.gameMap);
   }
   
   updateAccTime = 0;
@@ -70,22 +83,25 @@ export class TetrisGame extends Game {
     }
 
     this.updateAccTime += dt;
-    if (this.updateAccTime * 1000 < 20 * 16.666) {
+    if (this.updateAccTime * 1000 < this.levelSpeedFrames * 16.666) {
       return;
     }
     this.updateAccTime = 0;
   
-    if (this.lineClearing) {
+    if (this.isLineClearing) {
       return;
     }
 
     const { gameMap, currentBlock } = this;
     if (!currentBlock.fall()) {
-      const canClearLine = gameMap.checkClearLine((count) => {
-        this.lineClearing = true;
-        this.clearLineCount.value += count;
+      this.scoreProcessor.onBottom();
+
+      const canClearLine = gameMap.checkClearLine((lines) => {
+        this.isLineClearing = true;
+        this.scoreProcessor.onClearLines(lines);
+        this.checkUpLevel();
       }, () => {
-        this.lineClearing = false;
+        this.isLineClearing = false;
         if (this.isReplayEnd()) {
           this.gameOver();
         }
@@ -106,8 +122,8 @@ export class TetrisGame extends Game {
 
   restart() {
     this.gameMap.clear();
-    this.lineClearing = false;
-    this.clearLineCount.value = 0;
+    this.isLineClearing = false;
+    this.scoreProcessor.reset();
     this.blockCount = 0;
 
     if (this.isReplayMode) {
@@ -136,12 +152,21 @@ export class TetrisGame extends Game {
     console.log(this.replayRecoder.replay);
   }
 
+  checkUpLevel() {
+    const diff = this.scoreProcessor.lines.value - levelLinesTable[this.level.value];
+    if (diff < 0) {
+      return;
+    }
+
+    this.level.value++;
+  }
+
   isReplayEnd() {
     return this.isReplayMode && this.replayNowFrameIndex == this.replay.frames.length;
   }
 
   onAction(action: Action) {
-    if ((this.isPause.value && action != Action.Enter) || this.lineClearing) {
+    if ((this.isPause.value && action != Action.Enter) || this.isLineClearing) {
       return;
     }
     switch (action) {
@@ -176,7 +201,7 @@ export class TetrisGame extends Game {
       case Action.Down:
         currentBlock.fall();
         break;
-      case Action.Fall:
+      case Action.HardDrop:
         while (currentBlock.fall());
         break;
     }

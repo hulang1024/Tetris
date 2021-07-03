@@ -1,4 +1,4 @@
-import { Block, blockCellSize, eachCells, setCellPosition } from "./block";
+import { Block, eachCells, setCellPosition } from "./block";
 
 export class GameMap {
   el: HTMLElement;
@@ -7,47 +7,59 @@ export class GameMap {
   state: (number | null)[][] = [];
   blocks: Block[] = [];
   cells: (HTMLElement | null)[][] = [];
+  blockCellSize: number;
 
-  get blockLayer() {
-    return this.el.firstElementChild.children[1];
-  }
+  blockLayer: HTMLElement;
+  pauseOverlay: HTMLElement;
+  overOverlay: HTMLElement;
 
-  constructor(rows: number, cols: number) {
+  constructor(rows: number, cols: number, blockCellSize: number) {
     this.rows = rows;
     this.cols = cols;
+    this.blockCellSize = blockCellSize;
 
     const el = this.el = document.createElement('div');
     el.classList.add('map', 'bordered');
 
-    const borderEl = document.createElement('div');
-    borderEl.classList.add('border');
-    el.appendChild(borderEl);
-
     const backgroundEl = document.createElement('div');
     backgroundEl.classList.add('background');
-    borderEl.appendChild(backgroundEl);
+    el.appendChild(backgroundEl);
 
     const blockLayerEl = document.createElement('div');
     blockLayerEl.classList.add('block-layer');
-    borderEl.appendChild(blockLayerEl);
+    el.appendChild(blockLayerEl);
+    this.blockLayer = blockLayerEl;
 
-    el.style.setProperty('--width', `${blockCellSize * cols}px`);
-    el.style.setProperty('--height', `${blockCellSize * rows}px`);
+    const pauseOverlay = document.createElement('div');
+    pauseOverlay.classList.add('pause-overlay');
+    pauseOverlay.innerText = '游戏暂停';
+    el.appendChild(pauseOverlay);
+    this.pauseOverlay = pauseOverlay;
+
+    const overOverlay = document.createElement('div');
+    overOverlay.classList.add('over-overlay');
+    overOverlay.innerText = '游戏结束';
+    el.appendChild(overOverlay);
+    this.overOverlay = overOverlay;
+
+    const borderWidth = 3;
+    el.style.setProperty('--width', `${blockCellSize * cols + borderWidth * 2}px`);
+    el.style.setProperty('--height', `${blockCellSize * rows + borderWidth * 2}px`);
 
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('width', '100%');
     svg.setAttribute('height', '100%');
     let html = '';
+    const cellSize = blockCellSize;
     for (let r = 0; r < rows; r++) {
       this.state.push(new Array(cols));
       this.cells.push(new Array(cols));
       for (let c = 0; c < cols; c++) {
         this.state[r][c] = null;
         this.cells[r][c] = null;
-        const x = c * blockCellSize;
-        const y = r * blockCellSize;
-        const size = blockCellSize;
-        html += `<rect class="cell" x="${x}" y="${y}" width="${size}" height="${size}" />`;
+        const x = c * cellSize;
+        const y = r * cellSize;
+        html += `<rect class="cell" x="${x}" y="${y}" width="${cellSize}" height="${cellSize}" />`;
       }
     }
     svg.innerHTML = html;
@@ -127,7 +139,7 @@ export class GameMap {
         for (let c = 0; c < this.cols; c++) {
           const cell = this.cells[r][c];
           if (cell) {
-            setCellPosition(cell, r, c);
+            setCellPosition(cell, r, c, this.blockCellSize);
           }
         }
       }

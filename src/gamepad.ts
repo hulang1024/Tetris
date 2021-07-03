@@ -19,7 +19,7 @@ const BUTTONS = [
 
 const DAS = 16 * 16.666;
 const dasButtons = [
-  GamepadButton.Left, GamepadButton.Right, GamepadButton.Down
+  GamepadButton.Left, GamepadButton.Right, GamepadButton.Up, GamepadButton.Down
 ];
 
 export default class Gamepad {
@@ -47,23 +47,24 @@ export default class Gamepad {
         return false;
       });
 
-      btnEl.addEventListener('touchstart', function() {
+      const handleTouchStart = function() {
         const btn = getGamepadButton(this);
         onPress(btn);
         pressedStates.set(btn, true);
         pressedStartTimeMap.set(btn, new Date().getTime());
         navigator.vibrate?.(20);
         return false;
-      });
+      };
+      btnEl.addEventListener('touchstart', handleTouchStart);
 
-      const handleTouchOver = function() {
+      const handleTouchEnd = function() {
         const btn = getGamepadButton(this);
         pressedStates.set(btn, false);
         pressedStartTimeMap.set(btn, Infinity);
         return false;
       };
-      btnEl.addEventListener('touchend', handleTouchOver);
-      btnEl.addEventListener('touchcancel', handleTouchOver);
+      btnEl.addEventListener('touchend', handleTouchEnd);
+      btnEl.addEventListener('touchcancel', handleTouchEnd);
     });
   }
 

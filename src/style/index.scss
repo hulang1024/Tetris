@@ -8,8 +8,20 @@ html,body {
   height: 100%;
   margin: 0px;
   padding: 0px;
-  background: #aaa;
+  background: #333;
   overflow: hidden;
+}
+
+@font-face {
+  font-family: 'ccr';
+  src: url('./fonts/ccr.ttf');
+  src: url('./fonts/ccr.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'hun2';
+  src: url('./fonts/hun2.ttf');
+  src: url('./fonts/hun2.ttf') format('truetype');
 }
 
 .main {
@@ -18,87 +30,78 @@ html,body {
   flex-direction: column;
   user-select: none;
 
-  .tetris-window {
-    position: relative;
-    display: flex;
+  .playfield {
     flex: 1;
-    flex-direction: row-reverse;
+    display: flex;
     justify-content: center;
     align-items: center;
-    margin: 0 auto;
-    width: max-content;
 
-    & + .tetris-window {
-      margin-left: 20px;
-    }
-
-    .block-row {
-      margin-left: 4px;
+    .tetris-window {
+      position: relative;
       display: flex;
-      flex-direction: column;
+      flex-direction: row-reverse;
+      justify-content: center;
 
-      margin-top: -4px;
-      & > div {
-        margin-top: 4px;
+      & + .tetris-window {
+        margin-left: 20px;
       }
 
-      .clear-lines {
-        color: #fff;
-        font-size: 20px;
+      .stat {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        margin-left: 8px;
+        margin-top: -8px;
 
-        .border {
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
+        .bordered {
+          margin-top: 8px;
         }
 
-        .num {
-          font-size: 22px;
-          letter-spacing: 1px;
+        .title {
+          color: rgba(255, 255, 255, 0.7);
+          font-family: 'ccr';
+          font-size: 18px;
         }
-      }
 
-      .next-block {
-        width: 96px;
-        height: 96px;
-        .border {
-          display: flex;
-          justify-content: center;
-          align-items: center;
+        .next {
+          position: relative;
+          border: none;
 
-          .block {
+          .block-container {
             position: relative;
             left: 0;
             top: 1px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 16px 4px;
+            min-width: calc(var(--block-cell-size) * 4);
+            min-height: calc(var(--block-cell-size) * 2);
             transform: unset;
+
+            .block {
+              --brightness: 1;
+
+              position: relative;
+            }
+          }
+        }
+
+        .counter {
+          flex: 1;
+          padding: 8px 0px;
+          border: none;
+          background: transparent;
+
+          .num {
+            margin-top: 4px;
+            font-family: 'ccr';
+            font-size: 30px;
+            font-weight: bold;
+            color: #fff;
           }
         }
       }
-    }
-  }
-
-  .pause-overlay,
-  .over-overlay {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-    width: 100%;
-    height: 80px;
-    color: #fff;
-    opacity: 0;
-    font-size: 26px;
-    text-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
-    background: rgba(0, 0, 0, 0.8);
-    transition: all 0.2s ease;
-
-    &.show {
-      opacity: 1;
     }
   }
 }

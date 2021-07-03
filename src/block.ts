@@ -18,8 +18,6 @@ const blockColorTable = [
   '#00bcd4', '#ebd300', '#9370db'
 ];
 
-export const blockCellSize = 22;
-
 export enum Dir {
   Up,
   Right,
@@ -34,6 +32,7 @@ export class Block {
   
   el: HTMLElement;
   cells: HTMLElement[] = [];
+  cellSize: number;
 
   map: GameMap;
 
@@ -47,9 +46,15 @@ export class Block {
 
   get value() { return blockTable[this.type][this.dir]; }
 
-  constructor(type: number, dir: Dir, gridRow: number, gridCol: number, map: GameMap) {
+  constructor(
+    type: number, dir: Dir,
+    gridRow: number, gridCol: number,
+    map: GameMap,
+    cellSize?: number
+  ) {
     this._type = type;
     this._dir = dir;
+    this.cellSize = cellSize ?? map.blockCellSize;
     this.map = map;
 
     const el = this.el = document.createElement('div');
@@ -57,7 +62,7 @@ export class Block {
     el.style.setProperty('--color', blockColorTable[type]);
 
     eachCells(this.value, () => {
-      const cell = createBlockCell(blockCellSize);
+      const cell = createBlockCell(this.cellSize);
       this.cells.push(cell);
       el.appendChild(cell);
     });
@@ -92,6 +97,7 @@ export class Block {
       return true;
     } else {
       this.map.setBlockState(this);
+      this.el.classList.add('locked');
       return false;
     }
   }
@@ -139,7 +145,7 @@ export class Block {
     }
     if (changed || force) {
       eachCells(this.value, (r, c, i) => {
-        setCellPosition(this.cells[i], this.gridRow + r, this.gridCol + c);
+        setCellPosition(this.cells[i], this.gridRow + r, this.gridCol + c, this.cellSize);
       });
     }
   }
@@ -204,8 +210,8 @@ export class Block {
     cols = end - start + 1;
 
     const { el } = this;
-    el.style.width = `${blockCellSize * cols}px`;
-    el.style.height = `${blockCellSize * rows}px`;
+    el.style.width = `${this.cellSize * cols}px`;
+    el.style.height = `${this.cellSize * rows}px`;
 
     let i = 0;
     for (let r = 0; r < rows; r++) {
@@ -213,21 +219,21 @@ export class Block {
         if (!arr[r][c]) {
           continue;
         }
-        setCellPosition(this.cells[i++], this.gridRow + r, this.gridCol + c);
+        setCellPosition(this.cells[i++], this.gridRow + r, this.gridCol + c, this.cellSize);
       }
     }
   }
 }
 
-export function setCellPosition(cell: HTMLElement, row: number, col: number) {
-  cell.style.setProperty('--x', `${col * blockCellSize}px`);
+export function setCellPosition(cell: HTMLElement, row: number, col: number, cellSize: number) {
+  cell.style.setProperty('--x', `${col * cellSize}px`);
 
   if (row < 0) {
     cell.classList.add('hide')
   } else if (cell.classList.contains('hide')) {
     cell.classList.remove('hide')
   }
-  cell.style.setProperty('--y', `${row * blockCellSize}px`);
+  cell.style.setProperty('--y', `${row * cellSize}px`);
 }
 
 export function eachCells(

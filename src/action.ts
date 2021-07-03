@@ -3,6 +3,6 @@ export enum Action {
   Left,
   Right,
   Down,
-  Fall,
+  HardDrop,
   Enter,
 }

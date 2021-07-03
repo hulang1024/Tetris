@@ -1,3 +1,4 @@
+
 import { Action } from "./action";
 import KeyboardHandler from "./input/KeyboardHandler";
 import KeyboardState from "./input/KeyboardState";
@@ -24,16 +25,18 @@ export abstract class Game {
       },
     });
 
-    this.gamepad = new Gamepad({
+    this.gamepad = !window.device.mobile() ? null : new Gamepad({
       onPress: (button) => {
         let action = null;
         switch (button) {
           case GamepadButton.Up:
+            action = Action.Down;
+            break;
           case GamepadButton.Rotate:
             action = Action.Rotate;
             break;
           case GamepadButton.Down:
-            action = Action.Down;
+            action = Action.HardDrop;
             break;
           case GamepadButton.Right:
             action = Action.Right;
@@ -56,12 +59,12 @@ export abstract class Game {
 
   private setupUpdateLoop() {
     const onUpdate = this.onUpdate.bind(this);
-    const gamepadOnUpdate = this.gamepad.onUpdate.bind(this.gamepad);
+    const gamepadOnUpdate = this.gamepad ? this.gamepad.onUpdate.bind(this.gamepad) : null;
     let lastTime = 0;
     function update(time: number) {
       const dt = (time - (lastTime == 0 ? time : lastTime)) / 1000;
       onUpdate(dt);
-      gamepadOnUpdate();
+      gamepadOnUpdate?.();
       lastTime = time;
       requestAnimationFrame(update);
     }
@@ -81,7 +84,7 @@ export abstract class Game {
         break;
       case InputKey.Down:
       case InputKey.S:
-        action = Action.Down;
+        action = Action.HardDrop;
         break;
       case InputKey.Right:
       case InputKey.D:
@@ -95,7 +98,7 @@ export abstract class Game {
         action = Action.Enter;
         break;
       case InputKey.Space:
-        action = Action.Fall;
+        action = Action.HardDrop;
         break;
     }
     if (action) {
