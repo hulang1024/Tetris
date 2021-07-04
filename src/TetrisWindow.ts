@@ -19,6 +19,10 @@ export class TetrisWindow {
     el.classList.add('tetris-window');
     el.innerHTML = `
       <div class="stat">
+        <div class="score counter bordered">
+          <div class="title">SCORE</div>
+          <div class="num">0</div>
+        </div>
         <div class="next bordered">
           <div class="title">NEXT</div>
           <div class="block-container"></div>
@@ -31,10 +35,6 @@ export class TetrisWindow {
           <div class="title">LINES</div>
           <div class="num">0</div>
         </div>
-        <div class="score counter bordered">
-          <div class="title">SCORE</div>
-          <div class="num">0</div>
-        </div>
       </div>
     `;
     el.appendChild(gameMap.el);
@@ -42,9 +42,10 @@ export class TetrisWindow {
     const levelNumEl = el.querySelector('.level .num') as HTMLElement;
     const scoreNumEl = el.querySelector('.score .num') as HTMLElement;
     const linesNumEl = el.querySelector('.lines .num') as HTMLElement;
+    const nextContainer = el.querySelector('.next') as HTMLElement;
     const nextBlockContainer = el.querySelector('.next .block-container') as HTMLElement;
     const nextBlockCellSize = 18;
-    nextBlockContainer.style.setProperty('--block-cell-size', `${nextBlockCellSize}px`);
+    nextContainer.style.setProperty('--block-cell-size', `${nextBlockCellSize}px`);
 
     nextBlock.addAndRunOnce((block: Block) => {
       if (block == null) return;

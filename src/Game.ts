@@ -84,7 +84,7 @@ export abstract class Game {
         break;
       case InputKey.Down:
       case InputKey.S:
-        action = Action.HardDrop;
+        action = Action.Down;
         break;
       case InputKey.Right:
       case InputKey.D:

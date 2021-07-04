@@ -11,6 +11,7 @@ import ReplayRecorder from "./replay/ReplayRecorder";
 import { Replay, ReplayFrame } from "./replay/replay";
 import { ScoreProcessor } from "./scoring/ScoreProcessor";
 import { levelLinesTable, levelSpeedTable } from "./level";
+import { randomInt } from "./utils/random";
 
 export class TetrisGame extends Game {
   isPause = new BindableBool(true);
@@ -25,6 +26,7 @@ export class TetrisGame extends Game {
 
   level = new Bindable<number>(0);
   levelSpeedFrames: number;
+  levelLines: number;
   scoreProcessor: ScoreProcessor = new ScoreProcessor();
   isLineClearing = false;
 
@@ -44,6 +46,7 @@ export class TetrisGame extends Game {
 
     this.level.addAndRunOnce((level: number) => {
       console.log('level', level);
+      this.levelLines = 0;
       this.levelSpeedFrames = levelSpeedTable[level];
     });
 
@@ -57,7 +60,7 @@ export class TetrisGame extends Game {
 
   createBlock() {
     const type = this.blockGenerator.getBlockType(this.blockCount++);
-    const dir = typicalBlockDirTable[type];
+    const dir = randomInt(0, 4);//typicalBlockDirTable[type];
     return new Block(type, dir, 0, (this.gameMap.cols - 4) / 2, this.gameMap);
   }
   
@@ -98,21 +101,26 @@ export class TetrisGame extends Game {
 
       const canClearLine = gameMap.checkClearLine((lines) => {
         this.isLineClearing = true;
-        this.scoreProcessor.onClearLines(lines);
-        this.checkUpLevel();
-      }, () => {
+        navigator.vibrate?.(lines * 20);
+      }, (lines) => {
         this.isLineClearing = false;
+        if (lines) {
+          this.scoreProcessor.onClearLines(lines);
+          this.levelLines += lines;
+          this.checkUpLevel();
+        }
+        
         if (this.isReplayEnd()) {
           this.gameOver();
         }
+        if (canClearLine || currentBlock.gridRow > 0) {
+          this.currentBlock = this.nextBlock.value;
+          gameMap.addBlock(this.currentBlock);
+          this.nextBlock.value = this.createBlock();
+        } else {
+          this.gameOver();
+        }
       });
-      if (canClearLine || currentBlock.gridRow > 0) {
-        this.currentBlock = this.nextBlock.value;
-        gameMap.addBlock(this.currentBlock);
-        this.nextBlock.value = this.createBlock();
-      } else {
-        this.gameOver();
-      }
     } else {
       if (!this.isOver.value && this.isReplayEnd()) {
         this.gameOver();
@@ -153,7 +161,7 @@ export class TetrisGame extends Game {
   }
 
   checkUpLevel() {
-    const diff = this.scoreProcessor.lines.value - levelLinesTable[this.level.value];
+    const diff = this.levelLines - levelLinesTable[this.level.value];
     if (diff < 0) {
       return;
     }

@@ -88,25 +88,35 @@ export class GameMap {
     });
   }
 
-  checkClearLine(startClear: (lineCount: number) => void, cb: () => void) {
+  checkClearLine(startClear: (lineCount: number) => void, cb: (lineCount: number) => void) {
     const idxs = this.findFullLineIndexs();
     if (idxs.length) {
       startClear(idxs.length);
       this.clearLines(idxs, cb);
       return true;
     } else {
-      cb();
+      cb(idxs.length);
       return false;
     }
   }
 
-  clearLines(lineIndexs: number[], cb: () => void) {
+  clearLines(lineIndexs: number[], cb: (lineCount: number) => void) {
+    const clearDuration = 16.666 * 20;
+
     for(let i = 0; i < lineIndexs.length; i++) {
-      for (let c = 0; c < this.cols; c++) {
-        const r = lineIndexs[i];
-        const cell = this.cells[r][c];
-        if (cell) {
-          cell.parentElement.removeChild(cell);
+      const r = lineIndexs[i];
+      for (let p = 0; p < 5; p++) {
+        for (let pi = 0; pi < 2; pi++) {
+          const c = pi == 0 ? 4 - p : 5 + p;
+
+          const cell = this.cells[r][c];
+          if (!cell) {
+            continue;
+          }
+
+          cell.style.setProperty('--opactiy-duration',
+            `${((p + 1) * 2) * (clearDuration / this.cols) / 1000}s`);
+          cell.classList.add('hide');
           this.cells[r][c] = null;
 
           const block = this.blocks.find((b) => b.cells.find((c) => c == cell));
@@ -117,24 +127,34 @@ export class GameMap {
         }
       }
     }
-    
-    this.blocks.forEach((block, i) => {
-      if (block.cells.length == 0) {
-        block.el.parentElement.removeChild(block.el);
-        this.blocks.splice(i, 1);
-      }
-    });
-
-    for(let i = 0; i < lineIndexs.length; i++) {
-      for(let r = lineIndexs[i] - 1; r >= 0; r--) {
-        for(let c = 0; c < this.cols; c++) {
-          this.state[r + 1][c] = this.state[r][c];
-          this.cells[r + 1][c] = this.cells[r][c];
-        }
-      }
-    }
 
     setTimeout(() => {
+      for(let i = 0; i < lineIndexs.length; i++) {
+        for (let c = 0; c < this.cols; c++) {
+          const r = lineIndexs[i];
+          const cell = this.cells[r][c];
+          if (cell) {
+            cell.parentElement.removeChild(cell);
+          }
+        }
+      }
+    
+      this.blocks.forEach((block, i) => {
+        if (block.cells.length == 0) {
+          block.el.parentElement.removeChild(block.el);
+          this.blocks.splice(i, 1);
+        }
+      });
+  
+      for(let i = 0; i < lineIndexs.length; i++) {
+        for(let r = lineIndexs[i] - 1; r >= 0; r--) {
+          for(let c = 0; c < this.cols; c++) {
+            this.state[r + 1][c] = this.state[r][c];
+            this.cells[r + 1][c] = this.cells[r][c];
+          }
+        }
+      }
+  
       for (let r = 0; r < this.rows; r++) {
         for (let c = 0; c < this.cols; c++) {
           const cell = this.cells[r][c];
@@ -143,8 +163,8 @@ export class GameMap {
           }
         }
       }
-      cb();
-    }, 16 * 10);
+      cb(lineIndexs.length);
+    }, clearDuration);
   }
 
   findFullLineIndexs() {

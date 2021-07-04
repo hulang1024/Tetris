@@ -12,7 +12,7 @@
     border-radius: 2px;
     box-shadow: 0px 0px 4px 0px var(--color);
     box-sizing: border-box;
-    transition: box-shadow 0.1s,filter 0.1s ease;
+    transition: box-shadow 0.1s,filter 0.1s, opacity var(--opactiy-duration) ease;
     filter: brightness(var(--brightness));
 
     &.hide {
