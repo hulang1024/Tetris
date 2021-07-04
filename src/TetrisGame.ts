@@ -4,7 +4,6 @@ import { InputKey } from "./input/keys";
 import { GameMap } from "./map";
 import { TetrisWindow } from "./TetrisWindow";
 import Bindable from "./utils/bindables/Bindable";
-import BindableBool from "./utils/bindables/BindableBool";
 import { BlockGenerator } from "./blockGenerator";
 import { Action } from "./action";
 import ReplayRecorder from "./replay/ReplayRecorder";
@@ -12,10 +11,17 @@ import { Replay, ReplayFrame } from "./replay/replay";
 import { ScoreProcessor } from "./scoring/ScoreProcessor";
 import { levelLinesTable, levelSpeedTable } from "./level";
 import { randomInt } from "./utils/random";
+import * as delay from "./input/delay";
+
+enum GameState {
+  NotStarted,
+  Playing,
+  Paused,
+  End
+}
 
 export class TetrisGame extends Game {
-  isPause = new BindableBool(true);
-  isOver = new BindableBool(true);
+  gameState = new Bindable<GameState>(GameState.NotStarted);
 
   gameMap: GameMap;
   currentBlock: Block;
@@ -36,10 +42,12 @@ export class TetrisGame extends Game {
   replay: Replay;
   replayNowFrameIndex: number = 0;
 
+  actionLastRepeatTimeMap: Map<Action, number> = new Map();
+
   constructor() {
     super();
     this.blockGenerator = new BlockGenerator(new Date().getTime().toString());
-    const mapHeight = document.body.offsetHeight - 164 - 16;
+    const mapHeight = document.body.offsetHeight - 166 - 16;
     this.gameMap = new GameMap(20, 10, Math.min(24, Math.floor(mapHeight / 20)));
     this.tetrisWindow = new TetrisWindow(
       this.gameMap, this.nextBlock, this.level, this.scoreProcessor);
@@ -50,11 +58,11 @@ export class TetrisGame extends Game {
       this.levelSpeedFrames = levelSpeedTable[level];
     });
 
-    this.isPause.addAndRunOnce((isPause) => {
-      this.gameMap.pauseOverlay.classList[isPause ? 'add' : 'remove']('show');
-    });
-    this.isOver.changed.add((isOver: boolean) => {
-      this.gameMap.overOverlay.classList[isOver ? 'add' : 'remove']('show');
+    this.gameState.addAndRunOnce((gameState) => {
+      const { readyOverlay, pauseOverlay, overOverlay } = this.gameMap;
+      readyOverlay.classList[gameState == GameState.NotStarted ? 'add' : 'remove']('show');
+      pauseOverlay.classList[gameState == GameState.Paused ? 'add' : 'remove']('show');
+      overOverlay.classList[gameState == GameState.End ? 'add' : 'remove']('show');
     });
   }
 
@@ -67,7 +75,7 @@ export class TetrisGame extends Game {
   updateAccTime = 0;
   
   onUpdate(dt: number) {
-    if (this.isOver.value || this.isPause.value) {
+    if (this.gameState.value != GameState.Playing) {
       return;
     }
 
@@ -122,7 +130,7 @@ export class TetrisGame extends Game {
         }
       });
     } else {
-      if (!this.isOver.value && this.isReplayEnd()) {
+      if (this.isReplayEnd()) {
         this.gameOver();
       }
     }
@@ -151,12 +159,11 @@ export class TetrisGame extends Game {
 
     this.gameStartTimestamp = new Date().getTime();
 
-    this.isPause.value = false;
-    this.isOver.value = false;
+    this.gameState.value = GameState.Playing;
   }
 
   gameOver() {
-    this.isOver.value = true;
+    this.gameState.value = GameState.End;
     console.log(this.replayRecoder.replay);
   }
 
@@ -174,22 +181,62 @@ export class TetrisGame extends Game {
   }
 
   onAction(action: Action) {
-    if ((this.isPause.value && action != Action.Enter) || this.isLineClearing) {
+    if ((this.gameState.value == GameState.Paused && action != Action.Enter) || this.isLineClearing) {
       return;
     }
+    
     switch (action) {
       case Action.Enter:
-        if (this.isOver.value) {
-          this.restart();
-        } else {
-          this.isPause.toggle();
+        switch (this.gameState.value) {
+          case GameState.NotStarted:
+          case GameState.End:
+            this.restart();
+            break;
+          case GameState.Playing:
+            this.gameState.value = GameState.Paused;
+            break;
+          case GameState.Paused:
+            this.gameState.value = GameState.Playing;
+            break;
         }
         break;
       default:
-        if (this.isReplayMode) {
+        const isGameReady = this.gameState.value == GameState.NotStarted
+          || this.gameState.value == GameState.End;
+        if (isGameReady) {
+          switch (action) {
+            case Action.Up:
+            case Action.Right:
+              if (isGameReady && this.level.value < 29) {
+                this.level.value++;
+              }
+              break;
+            case Action.Down:
+            case Action.Left:
+              if (isGameReady && this.level.value > 0) {
+                this.level.value--;
+              }
+              break;
+          }
           return;
         }
-        this.doBlockAction(action);
+
+        if (this.isReplayMode || this.gameState.value != GameState.Playing) {
+          return;
+        }
+        const now = new Date().getTime();
+        let canRepeat = false;
+        const lastRepeatTime = this.actionLastRepeatTimeMap.get(action);
+        if (lastRepeatTime) {
+          canRepeat = now - lastRepeatTime >
+            (action == Action.Down ? delay.BLOCK_DOWN : delay.BLOCK_H_MOVE);
+        } else {
+          canRepeat = true;
+        }
+        if (canRepeat) {
+          this.actionLastRepeatTimeMap.set(action, now);
+          this.doBlockAction(action);
+        }
         break;
     }
   }
@@ -197,6 +244,7 @@ export class TetrisGame extends Game {
   doBlockAction(action: Action) {
     const { currentBlock } = this;
     switch (action) {
+      case Action.Up:
       case Action.Rotate:
         currentBlock.rotate();
         break;
@@ -220,18 +268,16 @@ export class TetrisGame extends Game {
     }
   }
   
-  onKeyDown(key: InputKey) {
-    super.onKeyDown(key);
+  onKeyDown(key: InputKey, event?: KeyboardEvent) {
+    super.onKeyDown(key, event);
     switch (key) {
       case InputKey.R:
-        this.isPause.value = true;
         this.isReplayMode = false;
         this.restart();
         break;
       // 调试回放用
       case InputKey.G:
         if (this.replay) {
-          this.isPause.value = true;
           this.isReplayMode = true;
           console.log(this.replay);
           this.restart();

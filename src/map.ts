@@ -10,6 +10,7 @@ export class GameMap {
   blockCellSize: number;
 
   blockLayer: HTMLElement;
+  readyOverlay: HTMLElement;
   pauseOverlay: HTMLElement;
   overOverlay: HTMLElement;
 
@@ -29,6 +30,12 @@ export class GameMap {
     blockLayerEl.classList.add('block-layer');
     el.appendChild(blockLayerEl);
     this.blockLayer = blockLayerEl;
+
+    const readyOverlay = document.createElement('div');
+    readyOverlay.classList.add('ready-overlay');
+    readyOverlay.innerText = '游戏未开始';
+    el.appendChild(readyOverlay);
+    this.readyOverlay = readyOverlay;
 
     const pauseOverlay = document.createElement('div');
     pauseOverlay.classList.add('pause-overlay');

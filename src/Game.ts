@@ -3,7 +3,8 @@ import { Action } from "./action";
 import KeyboardHandler from "./input/KeyboardHandler";
 import KeyboardState from "./input/KeyboardState";
 import { InputKey } from "./input/keys";
-import Gamepad, { GamepadButton } from "./gamepad";
+import Gamepad, { GamepadButton } from "./input/gamepad";
+import { DAS } from "./input/delay";
 
 export abstract class Game {
   keyboardState: KeyboardState = new KeyboardState();
@@ -30,13 +31,13 @@ export abstract class Game {
         let action = null;
         switch (button) {
           case GamepadButton.Up:
-            action = Action.Down;
+            action = Action.Up;
             break;
           case GamepadButton.Rotate:
             action = Action.Rotate;
             break;
           case GamepadButton.Down:
-            action = Action.HardDrop;
+            action = Action.Down;
             break;
           case GamepadButton.Right:
             action = Action.Right;
@@ -59,26 +60,55 @@ export abstract class Game {
 
   private setupUpdateLoop() {
     const onUpdate = this.onUpdate.bind(this);
+    const keyboardOnUpdate = this.keyboardOnUpdate.bind(this);
     const gamepadOnUpdate = this.gamepad ? this.gamepad.onUpdate.bind(this.gamepad) : null;
     let lastTime = 0;
     function update(time: number) {
       const dt = (time - (lastTime == 0 ? time : lastTime)) / 1000;
       onUpdate(dt);
       gamepadOnUpdate?.();
+      keyboardOnUpdate();
       lastTime = time;
       requestAnimationFrame(update);
     }
     requestAnimationFrame(update);
   }
 
+  gameKeyboardInputKeys = [
+    InputKey.Up, InputKey.W, InputKey.J,
+    InputKey.Down, InputKey.S,
+    InputKey.Right, InputKey.D,
+    InputKey.Left, InputKey.A,
+  ];
+
+  keyboardOnUpdate() {
+    this.gameKeyboardInputKeys.forEach((key) => {
+      if (this.keyboardState.keys.isPressed(key)
+        && this.keyboardState.keys.getPressDuration(key) > DAS) {
+        this.onInputKey(key);
+      }
+    });
+  }
+
   protected abstract onUpdate(dt: number): void;
 
   protected onKeyUp(key: InputKey, event?: KeyboardEvent) {}
   protected onKeyDown(key: InputKey, event?: KeyboardEvent) {
+    if (event.repeat) {
+      return;
+    }
+    this.onInputKey(key);
+  }
+
+  protected onAction(action: Action) {}
+
+  private onInputKey(key: InputKey) {
     let action = null;
     switch (key) {
       case InputKey.Up:
       case InputKey.W:
+        action = Action.Up;
+        break;
       case InputKey.J:
         action = Action.Rotate;
         break;
@@ -105,6 +135,4 @@ export abstract class Game {
       this.onAction(action)
     }
   }
-
-  protected onAction(action: Action) {}
 }

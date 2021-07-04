@@ -1,3 +1,5 @@
+import { DAS } from "./delay";
+
 export enum GamepadButton {
   Up,
   Right,
@@ -15,11 +17,6 @@ const BUTTONS = [
   GamepadButton.Left,
   GamepadButton.Rotate,
   GamepadButton.Enter
-];
-
-const DAS = 16 * 16.666;
-const dasButtons = [
-  GamepadButton.Left, GamepadButton.Right, GamepadButton.Up, GamepadButton.Down
 ];
 
 export default class Gamepad {
@@ -52,7 +49,7 @@ export default class Gamepad {
         onPress(btn);
         pressedStates.set(btn, true);
         pressedStartTimeMap.set(btn, new Date().getTime());
-        navigator.vibrate?.(20);
+        navigator.vibrate?.(16);
         return false;
       };
       btnEl.addEventListener('touchstart', handleTouchStart);
@@ -69,7 +66,7 @@ export default class Gamepad {
   }
 
   public onUpdate() {
-    dasButtons.forEach((btn) => {
+    BUTTONS.forEach((btn) => {
       if (this.isPressed(btn) && this.getPressDuration(btn) > DAS) {
         this.onPress(btn);
       }
