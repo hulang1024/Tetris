@@ -51,10 +51,12 @@
     text-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
     background: rgba(0, 0, 0, 0.8);
     transition: all 0.2s ease;
+    pointer-events: none;
 
     &.show {
       z-index: 1001;
       opacity: 1;
+      pointer-events: all;
     }
 
     .menu {
