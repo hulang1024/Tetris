@@ -1,9 +1,19 @@
 import * as seedrandom from "seedrandom";
 
+export class BlockTypeInfo {
+  type: number;
+  dir: number;
+
+  constructor(type: number, dir: number) {
+    this.type = type;
+    this.dir = dir;
+  }
+}
+
 export class BlockGenerator {
   seed: string;
   private prng: any;
-  private blockTypes: number[] = [];
+  private blockTypes: BlockTypeInfo[] = [];
 
   constructor(seed: string) {
     this.reset(seed);
@@ -12,8 +22,9 @@ export class BlockGenerator {
   getBlockType(index: number) {
     if (index > this.blockTypes.length - 1) {
       const value = this.prng();
-      const blockType = Math.floor(value * 7);
-      this.blockTypes.push(blockType);
+      const type = Math.floor(value * 7);
+      const dir = Math.floor(value * 4);//typicalBlockDirTable[type];
+      this.blockTypes.push(new BlockTypeInfo(type, dir));
     }
     return this.blockTypes[index];
   }

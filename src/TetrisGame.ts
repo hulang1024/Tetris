@@ -1,4 +1,4 @@
-import { Block, typicalBlockDirTable } from "./block";
+import { Block } from "./block";
 import { Game } from "./Game";
 import { InputKey } from "./input/keys";
 import { GameMap } from "./map";
@@ -10,7 +10,6 @@ import ReplayRecorder from "./replay/ReplayRecorder";
 import { Replay, ReplayFrame } from "./replay/replay";
 import { ScoreProcessor } from "./scoring/ScoreProcessor";
 import { levelLinesTable, levelSpeedTable } from "./level";
-import { randomInt } from "./utils/random";
 import * as delay from "./input/delay";
 
 enum GameState {
@@ -37,11 +36,12 @@ export class TetrisGame extends Game {
   isLineClearing = false;
 
   isReplayMode = false;
-  gameStartTimestamp: number = 0;
   replayRecoder: ReplayRecorder = new ReplayRecorder();
+  replayRecordFrameIndex: number = 0;
   replay: Replay;
-  replayNowFrameIndex: number = 0;
+  replayFrameIndex: number = 0;
 
+  inputAction: Action;
   actionLastRepeatTimeMap: Map<Action, number> = new Map();
 
   constructor() {
@@ -67,9 +67,12 @@ export class TetrisGame extends Game {
   }
 
   createBlock() {
-    const type = this.blockGenerator.getBlockType(this.blockCount++);
-    const dir = randomInt(0, 4);//typicalBlockDirTable[type];
-    return new Block(type, dir, 0, (this.gameMap.cols - 4) / 2, this.gameMap);
+    const blockType = this.blockGenerator.getBlockType(this.blockCount++);
+    return new Block(
+      blockType.type, blockType.dir,
+      0, (this.gameMap.cols - 4) / 2,
+      this.gameMap
+    );
   }
   
   updateAccTime = 0;
@@ -81,24 +84,31 @@ export class TetrisGame extends Game {
 
     if (this.isReplayMode) {
       const { frames } = this.replay;
-      const now = new Date().getTime();
-      while (this.replayNowFrameIndex < frames.length) {
-        const frame = frames[this.replayNowFrameIndex];
-        if (now - this.gameStartTimestamp > frame.time) {
+      if (this.replayFrameIndex < frames.length) {
+        const frame = frames[this.replayFrameIndex];
+        if (this.replayRecordFrameIndex === frame.frame) {
           this.doBlockAction(frame.action);
-          this.replayNowFrameIndex++;
-        } else {
-          break;
+          this.replayFrameIndex++;
         }
+      } else if (this.replayRecordFrameIndex >= this.replay.endFrame) {
+        this.gameOver();
+        return;
+      }
+    } else {
+      if (this.inputAction) {
+        this.doBlockAction(this.inputAction);
+        this.inputAction = null;
       }
     }
+
+    this.replayRecordFrameIndex++;
 
     this.updateAccTime += dt;
     if (this.updateAccTime * 1000 < this.levelSpeedFrames * 16.666) {
       return;
     }
     this.updateAccTime = 0;
-  
+
     if (this.isLineClearing) {
       return;
     }
@@ -118,9 +128,6 @@ export class TetrisGame extends Game {
           this.checkUpLevel();
         }
         
-        if (this.isReplayEnd()) {
-          this.gameOver();
-        }
         if (canClearLine || currentBlock.gridRow > 0) {
           this.currentBlock = this.nextBlock.value;
           gameMap.addBlock(this.currentBlock);
@@ -129,10 +136,6 @@ export class TetrisGame extends Game {
           this.gameOver();
         }
       });
-    } else {
-      if (this.isReplayEnd()) {
-        this.gameOver();
-      }
     }
   }
 
@@ -142,28 +145,33 @@ export class TetrisGame extends Game {
     this.scoreProcessor.reset();
     this.blockCount = 0;
 
+    this.inputAction = null;
+
+    this.replayRecordFrameIndex = 0;
+
     if (this.isReplayMode) {
+      this.replayFrameIndex = 0;
+      this.level.value = this.replay.level;
       this.blockGenerator.reset(this.replay.prngSeed);
-      this.replayNowFrameIndex = 0;
     } else {
       this.blockGenerator.reset(new Date().getTime().toString());
       const replay = new Replay()
       replay.prngSeed = this.blockGenerator.seed;
       this.replay = replay;
       this.replayRecoder.setReplay(replay);
+      this.replay.level = this.level.value;
     }
 
     this.currentBlock = this.createBlock();
     this.nextBlock.value = this.createBlock();
     this.gameMap.addBlock(this.currentBlock);
 
-    this.gameStartTimestamp = new Date().getTime();
-
     this.gameState.value = GameState.Playing;
   }
 
   gameOver() {
     this.gameState.value = GameState.End;
+    this.replay.endFrame = this.replayRecordFrameIndex;
     console.log(this.replayRecoder.replay);
   }
 
@@ -176,10 +184,6 @@ export class TetrisGame extends Game {
     this.level.value++;
   }
 
-  isReplayEnd() {
-    return this.isReplayMode && this.replayNowFrameIndex == this.replay.frames.length;
-  }
-
   onAction(action: Action) {
     if ((this.gameState.value == GameState.Paused && action != Action.Enter) || this.isLineClearing) {
       return;
@@ -188,8 +192,10 @@ export class TetrisGame extends Game {
     switch (action) {
       case Action.Enter:
         switch (this.gameState.value) {
-          case GameState.NotStarted:
           case GameState.End:
+            this.gameState.value = GameState.NotStarted;
+            break;
+          case GameState.NotStarted:
             this.restart();
             break;
           case GameState.Playing:
@@ -201,8 +207,7 @@ export class TetrisGame extends Game {
         }
         break;
       default:
-        const isGameReady = this.gameState.value == GameState.NotStarted
-          || this.gameState.value == GameState.End;
+        const isGameReady = this.gameState.value == GameState.NotStarted;
         if (isGameReady) {
           switch (action) {
             case Action.Up:
@@ -217,6 +222,9 @@ export class TetrisGame extends Game {
                 this.level.value--;
               }
               break;
+            case Action.Rotate:
+              this.isReplayMode = true;
+              this.restart();
           }
           return;
         }
@@ -235,7 +243,7 @@ export class TetrisGame extends Game {
         }
         if (canRepeat) {
           this.actionLastRepeatTimeMap.set(action, now);
-          this.doBlockAction(action);
+          this.inputAction = action;
         }
         break;
     }
@@ -262,8 +270,7 @@ export class TetrisGame extends Game {
         break;
     }
     if (!this.isReplayMode) {
-      const replayFrame = new ReplayFrame(
-        new Date().getTime() - this.gameStartTimestamp, action);
+      const replayFrame = new ReplayFrame(this.replayRecordFrameIndex, action);
       this.replayRecoder.record(replayFrame);
     }
   }
@@ -278,6 +285,7 @@ export class TetrisGame extends Game {
       // 调试回放用
       case InputKey.G:
         if (this.replay) {
+          this.replay.endFrame = this.replayRecordFrameIndex;
           this.isReplayMode = true;
           console.log(this.replay);
           this.restart();
