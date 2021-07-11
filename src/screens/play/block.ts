@@ -99,8 +99,10 @@ export class Block {
       this._dir = (this.dir + 1) % 4;
       this.map.setBlockState(this);
       this.setPosition(this.gridRow, this.gridCol, true);
+      return true;
     } else {
       this.map.setBlockState(this);
+      return false;
     }
   }
 
@@ -109,7 +111,9 @@ export class Block {
     if (this.canMove(this.gridRow, this.gridCol + v)) {
       this.setPosition(this.gridRow, this.gridCol + v);
       this.map.setBlockState(this);
+      return true;
     }
+    return false;
   }
 
   fall() {

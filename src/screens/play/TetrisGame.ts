@@ -415,28 +415,39 @@ export class TetrisGame {
 
   doBlockAction(action: Action) {
     const currentBlock = this.currentBlock.value;
+    let isRecord = false;
     switch (action) {
       case Action.Up:
       case Action.Rotate:
-        currentBlock.rotate();
-        this.gameplayAudio.play('rotate');
+        if (currentBlock.rotate()) {
+          isRecord = true;
+          this.gameplayAudio.play('rotate');
+        }
         break;
       case Action.Left:
-        currentBlock.left(-1);
-        this.gameplayAudio.play('move');
+        if (currentBlock.left(-1)) {
+          isRecord = true;
+          this.gameplayAudio.play('move');
+        }
         break;
       case Action.Right:
-        currentBlock.left(+1);
-        this.gameplayAudio.play('move');
+        if (currentBlock.left(+1)) {
+          isRecord = true;
+          this.gameplayAudio.play('move');
+        }
         break;
       case Action.Down:
-        currentBlock.fall();
+        if (currentBlock.fall()) {
+          isRecord = true;
+          this.gameplayAudio.play('move');
+        }
         break;
       case Action.HardDrop:
         this.isHardDropping = true;
+        isRecord = true;
         break;
     }
-    if (!this.isReplayMode) {
+    if (!this.isReplayMode && isRecord) {
       const replayFrame = new ReplayFrame(this.replayRecordFrameIndex, action);
       this.replayRecoder.record(replayFrame);
     }
