@@ -1,6 +1,8 @@
 import "current-device";
-import { TetrisGame } from "./TetrisGame";
+import { TetrisGame } from "./screens/play/TetrisGame";
 
-const game = new TetrisGame();
-const playfieldEl = document.querySelector('.main > .playfield');
-playfieldEl.appendChild(game.tetrisWindow.el);
+window.onload = () => {
+  const game = new TetrisGame();
+  const playfieldEl = document.querySelector('.main > .playfield');
+  playfieldEl.appendChild(game.tetrisWindow.el);
+}

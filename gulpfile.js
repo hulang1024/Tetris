@@ -1,11 +1,13 @@
 const fs = require('fs');
 const { src, dest, series, parallel, watch } = require('gulp');
+const data = require('gulp-data');
 const gulpClean = require('gulp-clean');
 const browserify = require('browserify');
 const tsify = require('tsify');
 const gls = require('gulp-live-server');
 const sass = require('gulp-sass');
 sass.compiler = require('node-sass');
+const template = require('gulp-template');
 
 if (!fs.existsSync('dist')) {
   fs.mkdirSync('dist');
@@ -29,14 +31,21 @@ function css() {
 }
 
 function static() {
-  return src(['index.html', 'public/**']).pipe(dest('dist'));
+  return src('public/**').pipe(dest('dist'));
+}
+
+function index() {
+  return src('index.html')
+    .pipe(data(() => ({ hash: + new Date().getTime() }))) // fake hash
+    .pipe(template())
+    .pipe(dest('dist'));
 }
 
 function clean() {
   return src('dist/*', { read: false }).pipe(gulpClean());
 }
 
-const build = series(clean, parallel(javascript, css, static));
+const build = series(clean, parallel(javascript, css, static, index));
 
 function doWatch(cb) {
   watch(['src/**/*.ts'], javascript);

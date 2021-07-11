@@ -16,7 +16,7 @@
     .cell {
       fill: transparent;
       stroke-width: 0.5px;
-      stroke: rgba(50,50,50,0.16);
+      stroke: rgba(100,100,100,0.16);
     }
   }
 
@@ -26,21 +26,25 @@
     top: 0;
     width: 100%;
     height: 100%;
+    overflow: hidden;
   }
 
-  .ready-overlay,
-  .pause-overlay,
-  .over-overlay {
+  .game-ready-overlay,
+  .game-pause-overlay,
+  .game-over-overlay {
     position: absolute;
     left: 50%;
     top: 50%;
     transform: translate(-50%, -50%);
+    padding: 32px;
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
     z-index: 1000;
     width: 100%;
-    height: 80px;
+    min-height: 80px;
+    box-sizing: border-box;
     color: #fff;
     opacity: 0;
     font-size: 26px;
@@ -49,7 +53,49 @@
     transition: all 0.2s ease;
 
     &.show {
+      z-index: 1001;
       opacity: 1;
+    }
+
+    .menu {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      margin-top: -40px;
+
+      .button {
+        margin-top: 40px;
+      }
+    }
+
+  }
+
+  .game-ready-overlay {
+    .menu {
+      .button {
+        &.start {
+          background-color: rgba(133, 204, 51, 0.7);
+        }
+      }
+    }
+  }
+
+  .game-over-overlay {
+    .head {
+      margin-bottom: 56px;
+    }
+
+    .menu {
+      .button {
+        margin-top: 40px;
+        &.restart {
+          background-color: rgba(133, 204, 51, 0.7);
+        }
+
+        &.watch-replay {
+          background-color: rgba(158, 117, 240, 0.7);
+        }
+      }
     }
   }
 }

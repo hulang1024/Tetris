@@ -1,7 +1,7 @@
 import { Block } from "./block";
 import { GameMap } from "./map";
-import { ScoreProcessor } from "./scoring/ScoreProcessor";
-import Bindable from "./utils/bindables/Bindable";
+import { ScoreProcessor } from "../../scoring/ScoreProcessor";
+import Bindable from "../../utils/bindables/Bindable";
 
 export class TetrisWindow {
   el: HTMLElement;

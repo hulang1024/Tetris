@@ -5,6 +5,7 @@
     position: absolute;
     top: 0px;
     left: 0px;
+    z-index: 1;
     width: calc(var(--size) - 2px);
     height: calc(var(--size) - 2px);
     background-color: var(--color);
@@ -12,17 +13,33 @@
     border-radius: 2px;
     box-shadow: 0px 0px 4px 0px var(--color);
     box-sizing: border-box;
-    transition: box-shadow 0.1s,filter 0.1s, opacity var(--opactiy-duration) ease;
+    transition: box-shadow 0.1s,filter 0.2s, opacity var(--opactiy-duration, 0.2s) ease;
     filter: brightness(var(--brightness));
+    will-change: transform, filter;
 
     &.hide {
       opacity: 0;
     }
   }
 
-  &.locked {
+  &.hide {
+    display: none;
+  }
+
+  &.shadow {
+    --brightness: 0.8;
+
     .cell {
-      --brightness: 1;
+      z-index: 0;
+      opacity: 0.6;
+    }
+  }
+
+  &.locked {
+    --brightness: 1;
+
+    .cell {
+      will-change: auto;
     }
   }
 }

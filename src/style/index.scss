@@ -10,6 +10,7 @@ html,body {
   padding: 0px;
   background: #333;
   overflow: hidden;
+  font-family: 'Roboto', 'Trebuchet MS', 'Microsoft Yahei', 'Hiragino Sans GB', sans-serif;
 }
 
 @font-face {
@@ -107,6 +108,31 @@ html,body {
       }
     }
   }
+}
+
+.button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 40px;
+  border-radius: 2px;
+  border: none;
+  outline: none;
+  font-size: 1rem;
+  font-weight: bold;
+  color: #FFF;
+  cursor: pointer;
+  background-color: #333;
+  transition: background-color .5s ease;
+  box-sizing: border-box;
+  user-select: none;
+
+  &:active {
+    box-shadow: 0 0 0 0.1rem #fff;
+  }
+}
+.desktop .button:hover {
+  box-shadow: 0 0 0 0.1rem #fff;
 }
 
 .key-table {

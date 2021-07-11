@@ -10,9 +10,6 @@ export class GameMap {
   blockCellSize: number;
 
   blockLayer: HTMLElement;
-  readyOverlay: HTMLElement;
-  pauseOverlay: HTMLElement;
-  overOverlay: HTMLElement;
 
   constructor(rows: number, cols: number, blockCellSize: number) {
     this.rows = rows;
@@ -30,24 +27,6 @@ export class GameMap {
     blockLayerEl.classList.add('block-layer');
     el.appendChild(blockLayerEl);
     this.blockLayer = blockLayerEl;
-
-    const readyOverlay = document.createElement('div');
-    readyOverlay.classList.add('ready-overlay');
-    readyOverlay.innerText = '游戏未开始';
-    el.appendChild(readyOverlay);
-    this.readyOverlay = readyOverlay;
-
-    const pauseOverlay = document.createElement('div');
-    pauseOverlay.classList.add('pause-overlay');
-    pauseOverlay.innerText = '游戏暂停';
-    el.appendChild(pauseOverlay);
-    this.pauseOverlay = pauseOverlay;
-
-    const overOverlay = document.createElement('div');
-    overOverlay.classList.add('over-overlay');
-    overOverlay.innerText = '游戏结束';
-    el.appendChild(overOverlay);
-    this.overOverlay = overOverlay;
 
     const borderWidth = 3;
     el.style.setProperty('--width', `${blockCellSize * cols + borderWidth * 2}px`);
@@ -75,7 +54,9 @@ export class GameMap {
   }
 
   addBlock(block: Block) {
-    this.setBlockState(block, block.type);
+    if (!block.isShadow) {
+      this.setBlockState(block, block.type);
+    }
     this.blocks.push(block);
     this.blockLayer.appendChild(block.el);
   }
@@ -208,6 +189,9 @@ export class GameMap {
     }
 
     this.blocks.forEach((block) => {
+      if (block.isShadow) {
+        return;
+      }
       block.el.parentElement.removeChild(block.el);
     });
     this.blocks = [];

@@ -36,13 +36,27 @@ export class Block {
 
   map: GameMap;
 
+  private _isShadow: boolean;
+  get isShadow() { return this._isShadow; }
+
   // 种类
   private _type: number;
   get type() { return this._type; }
+  set type(val) {
+    if (this._isShadow) {
+      this._type = val;
+      this.el.style.setProperty('--color', blockColorTable[this._type]);
+    }
+  }
 
   // 方向
   private _dir: Dir;
   get dir() { return this._dir; }
+  set dir(val) {
+    if (this._isShadow) {
+      this._dir = val;
+    }
+  }
 
   get value() { return blockTable[this.type][this.dir]; }
 
@@ -52,22 +66,31 @@ export class Block {
     map: GameMap,
     cellSize?: number
   ) {
-    this._type = type;
-    this._dir = dir;
     this.cellSize = cellSize ?? map.blockCellSize;
     this.map = map;
 
     const el = this.el = document.createElement('div');
     el.classList.add('block');
-    el.style.setProperty('--color', blockColorTable[type]);
+    if (-1 <= type && type <= 6) {
+      for (let i = 0; i < 4; i++) {
+        const cell = createBlockCell(this.cellSize);
+        this.cells.push(cell);
+        el.appendChild(cell);
+      }
+    }
 
-    eachCells(this.value, () => {
-      const cell = createBlockCell(this.cellSize);
-      this.cells.push(cell);
-      el.appendChild(cell);
-    });
+    this._type = type;
+    this._dir = dir;
+    this._isShadow = type == -1;
 
-    this.setPosition(gridRow, gridCol);
+    if (this._isShadow) {
+      el.classList.add('shadow');
+    }
+
+    if (type > -1) {
+      this.el.style.setProperty('--color', blockColorTable[this._type]);
+      this.setPosition(gridRow, gridCol);
+    }
   }
 
   rotate() {
@@ -97,19 +120,23 @@ export class Block {
       return true;
     } else {
       this.map.setBlockState(this);
-      this.el.classList.add('locked');
       return false;
     }
+  }
+
+  lock() {
+    this.el.classList.add('locked');
+  }
+
+  canFall(rows = 1) {
+    return this.canMove(this.gridRow + rows, this.gridCol);
   }
 
   canMove(gridRow: number, gridCol: number) {
     let ret: boolean | null = null;
     eachCells(this.value, (r, c) => {
-      const gr = gridRow + r;
+      const gr = Math.max(0, gridRow + r);
       const gc = gridCol + c;
-      if (gr < 0) {
-        return;
-      }
       if (ret === null && !(this.map.isInBounds(gr, gc) && this.map.isEmpty(gr, gc))) {
         ret = false;
       }
@@ -122,7 +149,7 @@ export class Block {
       for (let c = 0; c < 4; c++) {
         const i = r * 4 + c;
         if ((this.value >> 16) & (0x008000 >> i)) {
-          const gr = this.gridRow + r;
+          const gr = Math.max(0, this.gridRow + r);
           const gc = this.gridCol + c;
           if (!(this.map.isInBounds(gr, gc) && this.map.isEmpty(gr, gc))) {
             return false;
@@ -148,6 +175,14 @@ export class Block {
         setCellPosition(this.cells[i], this.gridRow + r, this.gridCol + c, this.cellSize);
       });
     }
+  }
+
+  show() {
+    this.el.classList.remove('hide');
+  }
+
+  hide() {
+    this.el.classList.add('hide');
   }
 
   trim() {
@@ -227,12 +262,6 @@ export class Block {
 
 export function setCellPosition(cell: HTMLElement, row: number, col: number, cellSize: number) {
   cell.style.setProperty('--x', `${col * cellSize}px`);
-
-  if (row < 0) {
-    cell.classList.add('hide')
-  } else if (cell.classList.contains('hide')) {
-    cell.classList.remove('hide')
-  }
   cell.style.setProperty('--y', `${row * cellSize}px`);
 }
 
