@@ -28,7 +28,7 @@ export class GameMap {
     el.appendChild(blockLayerEl);
     this.blockLayer = blockLayerEl;
 
-    const borderWidth = 3;
+    const borderWidth = 2;
     el.style.setProperty('--width', `${blockCellSize * cols + borderWidth * 2}px`);
     el.style.setProperty('--height', `${blockCellSize * rows + borderWidth * 2}px`);
 

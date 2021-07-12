@@ -1,4 +1,4 @@
-import { Action } from "../screens/play/block_action";
+import { Action } from "../screens/play/blockAction";
 
 export class ReplayFrame {
   frame: number;

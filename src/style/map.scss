@@ -4,7 +4,7 @@
   width: var(--width);
   height: var(--height);
   box-sizing: border-box;
-  background: #111;
+  background: #222;
 
   & > .background {
     position: absolute;
@@ -15,8 +15,8 @@
 
     .cell {
       fill: transparent;
-      stroke-width: 0.5px;
-      stroke: rgba(100,100,100,0.16);
+      stroke-width: 1px;
+      stroke: rgba(200,200,200,0.05);
     }
   }
 
@@ -43,13 +43,12 @@
     align-items: center;
     z-index: 1000;
     width: 100%;
-    min-height: 80px;
+    height: 100%;
     box-sizing: border-box;
-    color: #fff;
     opacity: 0;
-    font-size: 26px;
-    text-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
-    background: rgba(0, 0, 0, 0.8);
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 34px;
+    background: rgba(255, 255, 255, 0.1);
     transition: all 0.2s ease;
     pointer-events: none;
 
@@ -59,43 +58,63 @@
       pointer-events: all;
     }
 
+    .head {
+      margin-bottom: 56px;
+    }
+
     .menu {
       display: flex;
       flex-direction: column;
+      justify-content: center;
+      align-items: center;
       width: 100%;
       margin-top: -40px;
 
       .button {
         margin-top: 40px;
+        width: 160px;
+        height: 70px;
+        font-size: 18px;
       }
     }
-
   }
 
   .game-ready-overlay {
     .menu {
       .button {
         &.start {
-          background-color: rgba(133, 204, 51, 0.7);
+          background-color: rgba(147, 237, 148, 0.8);
+        }
+      }
+    }
+  }
+
+  .game-pause-overlay {
+    .menu {
+      .button {
+        &.resume {
+          background-color: rgba(147, 237, 148, 0.8);
+        }
+        &.restart {
+          background-color: rgba(247, 110, 100, 0.8);
         }
       }
     }
   }
 
   .game-over-overlay {
-    .head {
-      margin-bottom: 56px;
-    }
-
     .menu {
       .button {
-        margin-top: 40px;
         &.restart {
-          background-color: rgba(133, 204, 51, 0.7);
+          background-color: rgba(147, 237, 148, 0.8);
         }
 
         &.watch-replay {
-          background-color: rgba(158, 117, 240, 0.7);
+          background-color: rgba(238, 238, 150, 0.8);
+        }
+
+        &.save {
+          background-color: rgba(211, 130, 251, 0.8);
         }
       }
     }

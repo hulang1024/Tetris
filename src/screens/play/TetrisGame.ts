@@ -2,7 +2,7 @@ import { Block } from "./block";
 import { GameMap } from "./map";
 import { TetrisWindow } from "./TetrisWindow";
 import { BlockGenerator } from "./blockGenerator";
-import { Action } from "./block_action";
+import { Action } from "./blockAction";
 import { levelLinesTable, levelSpeedTable } from "./level";
 import KeyboardState from "../../input/KeyboardState";
 import KeyboardHandler from "../../input/KeyboardHandler";
@@ -18,6 +18,7 @@ import AudioManager from "../../audio/AudioManager";
 import { GameplayAudio } from "./gameplayAudio";
 import { GameOverOverlay } from "./gameOverOverlay";
 import { GameReadyOverlay } from "./gameReadyOverlay";
+import { GamePauseOverlay } from "./gamePauseOverlay";
 
 enum GameState {
   NotStarted,
@@ -90,15 +91,25 @@ export class TetrisGame {
     };
     this.gameMap.el.appendChild(gameReadyOverlay.el);
 
-    const gamePauseOverlay = document.createElement('div');
-    gamePauseOverlay.classList.add('game-pause-overlay');
-    gamePauseOverlay.innerText = '游戏暂停';
-    this.gameMap.el.appendChild(gamePauseOverlay);
+    const gamePauseOverlay = new GamePauseOverlay();
+    gamePauseOverlay.onResume = () => {
+      this.gameState.value = GameState.Playing;
+    };
+    gamePauseOverlay.onRestart = () => {
+      this.restart();
+    };
+    gamePauseOverlay.onQuit = () => {
+      this.gameOver();
+    };
+    this.gameMap.el.appendChild(gamePauseOverlay.el);
 
+    const toggle = (el: HTMLElement, isShow?: boolean) => {
+      el.classList[isShow ? 'add' : 'remove']('show');
+    }
     this.gameState.addAndRunOnce((gameState: GameState) => {
-      gameReadyOverlay.el.classList[gameState == GameState.NotStarted ? 'add' : 'remove']('show');
-      gamePauseOverlay.classList[gameState == GameState.Paused ? 'add' : 'remove']('show');
-      gameOverOverlay.el.classList[gameState == GameState.End ? 'add' : 'remove']('show');
+      toggle(gameReadyOverlay.el, gameState == GameState.NotStarted);
+      toggle(gamePauseOverlay.el, gameState == GameState.Paused);
+      toggle(gameOverOverlay.el, gameState == GameState.End);
     });
 
     this.level.addAndRunOnce((level: number) => {
@@ -122,16 +133,18 @@ export class TetrisGame {
 
     new KeyboardHandler({
       onKeyDown: (key, event) => {
-        this.onKeyDown(key, event);
-        if (!event.repeat) {
-          this.keyboardState.keys.setPressed(key, true);
+        if (event.repeat) {
+          return;
         }
+        this.onKeyDown(key, event);
+        this.keyboardState.keys.setPressed(key, true);
       },
       onKeyUp: (key, event) => {
-        this.onKeyUp(key, event);
-        if (!event.repeat) {
-          this.keyboardState.keys.setPressed(key, false);
+        if (event.repeat) {
+          return;
         }
+        this.onKeyUp(key, event);
+        this.keyboardState.keys.setPressed(key, false);
       },
     });
 
@@ -185,9 +198,9 @@ export class TetrisGame {
     if (this.isReplayMode) {
       const { frames } = this.replay;
       if (this.replayFrameIndex < frames.length) {
-        const frame = frames[this.replayFrameIndex];
-        if (this.replayRecordFrameIndex === frame.frame) {
-          this.doBlockAction(frame.action);
+        const replayFrame = frames[this.replayFrameIndex];
+        if (this.replayRecordFrameIndex === replayFrame.frame) {
+          this.doBlockAction(replayFrame.action);
           this.replayFrameIndex++;
         }
       } else if (this.replayRecordFrameIndex >= this.replay.endFrame) {
@@ -209,11 +222,7 @@ export class TetrisGame {
 
     if (this.isHardDropping) {
       this.updateAccTime = 0;
-      while (currentBlock.fall()) {
-        if (!currentBlock.canFall(2)) {
-          break;
-        }
-      }
+      while (currentBlock.fall());
     } else {
       this.updateAccTime += dt;
       if (this.updateAccTime * 1000 < this.levelSpeedFrames * 16.666) {
@@ -281,7 +290,7 @@ export class TetrisGame {
     }
 
     if (force || currentBlock.gridCol != shadowBlock.gridCol) {
-      shadowBlock.gridRow = 0;
+      shadowBlock.gridRow = currentBlock.gridRow;
       shadowBlock.gridCol = currentBlock.gridCol;
       this.gameMap.easeBlockState(currentBlock);
       while (true) {
@@ -331,7 +340,6 @@ export class TetrisGame {
   gameOver() {
     this.gameState.value = GameState.End;
     this.replay.endFrame = this.replayRecordFrameIndex;
-    console.log(this.replayRecoder.replay);
   }
 
   checkUpLevel() {
