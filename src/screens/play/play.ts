@@ -275,12 +275,7 @@ export class TetrisGame {
     }
 
     if (isLocked) {
-      if (this.isHardDropping) {
-        this.isHardDropping = false;
-        this.gameplayAudio.play('harddrop');
-      } else {
-        this.gameplayAudio.play('lock');
-      }
+      this.shadowBlock.hide();
       currentBlock.lock();
       this.scoreProcessor.onBottom();
       const clearLines = this.gameMap.checkClearLine((lines) => {
@@ -290,7 +285,6 @@ export class TetrisGame {
           this.scoreProcessor.onClearLines(lines);
           this.levelLines += lines;
           this.checkUpLevel();
-          this.gameplayAudio.play(`erase${lines}`);
         }
         this.isLineClearing = false;
         if (clearLines || currentBlock.gridRow > 0) {
@@ -300,6 +294,16 @@ export class TetrisGame {
           this.gameOver();
         }
       });
+      if (clearLines) {
+        this.gameplayAudio.play(`erase${clearLines}`);
+      } else {
+        if (this.isHardDropping) {
+          this.isHardDropping = false;
+          this.gameplayAudio.play('harddrop');
+        } else {
+          this.gameplayAudio.play('lock');
+        }
+      }
       this.gameMap.el.style.setProperty('--g', `${(clearLines + 1) * 4}px`);
       this.gameMap.el.classList.add('g');
       this.gameMap.el.ontransitionend = () => {

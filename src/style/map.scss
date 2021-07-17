@@ -10,7 +10,7 @@
   border-top: none;
 
   &.g {
-    animation: map-g-animation 0.2s ease-out 1;
+    animation: map-g-animation 0.07s ease-out 1;
   }
 
   & > .background {
@@ -132,7 +132,10 @@
   0% {
     transform: translateY(0px);
   }
-  100% {
+  40% {
     transform: translateY(var(--g));
+  }
+  100% {
+    transform: translateY(0px);
   }
 }

@@ -25,6 +25,10 @@
     &.hide {
       opacity: 0;
     }
+
+    &.clear-drop {
+      transition: transform 0.07s ease-out;
+    }
   }
 
   &.hide {

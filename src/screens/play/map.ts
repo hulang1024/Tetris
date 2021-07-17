@@ -147,11 +147,22 @@ export class GameMap {
         for (let c = 0; c < this.cols; c++) {
           const cell = this.cells[r][c];
           if (cell) {
+            cell.classList.add('clear-drop');
             setCellPosition(cell, r, c, this.blockCellSize);
           }
         }
       }
-      cb(lineIndexs.length);
+      setTimeout(() => {
+        for (let r = 0; r < this.rows; r++) {
+          for (let c = 0; c < this.cols; c++) {
+            const cell = this.cells[r][c];
+            if (cell) {
+              cell.classList.remove('clear-drop');
+            }
+          }
+        }
+        cb(lineIndexs.length);
+      }, 70);
     }, clearDuration);
   }
 
