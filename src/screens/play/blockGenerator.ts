@@ -1,4 +1,5 @@
 import * as seedrandom from "seedrandom";
+import { typicalBlockDirTable } from "./block";
 
 export class BlockTypeInfo {
   type: number;
@@ -23,7 +24,7 @@ export class BlockGenerator {
     if (index > this.blockTypes.length - 1) {
       const value = this.prng();
       const type = Math.floor(value * 7);
-      const dir = Math.floor(value * 4);//typicalBlockDirTable[type];
+      const dir = typicalBlockDirTable[type]; // Math.floor(value * 4);
       this.blockTypes.push(new BlockTypeInfo(type, dir));
     }
     return this.blockTypes[index];

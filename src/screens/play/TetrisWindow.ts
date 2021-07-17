@@ -2,16 +2,16 @@ import { Block } from "./block";
 import { GameMap } from "./map";
 import { ScoreProcessor } from "../../scoring/ScoreProcessor";
 import Bindable from "../../utils/bindables/Bindable";
+import BindableList from "../../utils/bindables/BindableList";
 
 export class TetrisWindow {
   el: HTMLElement;
-  nextBlock: Bindable<Block>;
   clearLineCount: Bindable<number>;
   score: Bindable<number>;
 
   constructor(
     gameMap: GameMap,
-    nextBlock: Bindable<Block>,
+    nextBlockQueue: BindableList<Block>,
     level: Bindable<number>,
     scoreProcessor: ScoreProcessor
   ) {
@@ -19,13 +19,13 @@ export class TetrisWindow {
     el.classList.add('tetris-window');
     el.innerHTML = `
       <div class="stat">
-        <div class="score counter bordered">
-          <div class="title">SCORE</div>
-          <div class="num">0</div>
-        </div>
         <div class="next bordered">
           <div class="title">NEXT</div>
           <div class="block-container"></div>
+        </div>
+        <div class="score counter bordered">
+          <div class="title">SCORE</div>
+          <div class="num">0</div>
         </div>
         <div class="level counter bordered">
           <div class="title">LEVEL</div>
@@ -44,18 +44,19 @@ export class TetrisWindow {
     const linesNumEl = el.querySelector('.lines .num') as HTMLElement;
     const nextContainer = el.querySelector('.next') as HTMLElement;
     const nextBlockContainer = el.querySelector('.next .block-container') as HTMLElement;
-    const nextBlockCellSize = 18;
+    const nextBlockCellSize = 16;
     nextContainer.style.setProperty('--block-cell-size', `${nextBlockCellSize}px`);
+    nextContainer.style.setProperty('--next-block-queue-capacity', 4 + '');
 
-    nextBlock.addAndRunOnce((block: Block) => {
+    nextBlockQueue.added.add((block: Block) => {
       if (block == null) return;
       const tBlock = new Block(block.type, block.dir, 0, 0, gameMap, nextBlockCellSize);
       tBlock.trim();
-      if (nextBlockContainer.firstElementChild) {
-        nextBlockContainer.replaceChild(tBlock.el, nextBlockContainer.firstElementChild);
-      } else {
-        nextBlockContainer.appendChild(tBlock.el);
-      }
+      nextBlockContainer.appendChild(tBlock.el);
+    });
+
+    nextBlockQueue.removed.add((block: Block) => {
+      nextBlockContainer.removeChild(nextBlockContainer.firstElementChild);
     });
 
     level.addAndRunOnce((num: number) => {

@@ -19,6 +19,7 @@ import { GameplayAudio } from "./gameplayAudio";
 import { GameOverOverlay } from "./gameOverOverlay";
 import { GameReadyOverlay } from "./gameReadyOverlay";
 import { GamePauseOverlay } from "./gamePauseOverlay";
+import BindableList from "../../utils/bindables/BindableList";
 
 enum GameState {
   NotStarted,
@@ -45,7 +46,7 @@ export class TetrisGame {
 
   gameMap: GameMap;
   currentBlock = new Bindable<Block>();
-  nextBlock = new Bindable<Block>();
+  nextBlockQueue = new BindableList<Block>();
   shadowBlock: Block;
   blockCount = 0;
   tetrisWindow: TetrisWindow;
@@ -57,6 +58,9 @@ export class TetrisGame {
   scoreProcessor: ScoreProcessor = new ScoreProcessor();
   isLineClearing = false;
   isHardDropping = false;
+  isLockDelayTime = false;
+  lockDelay = 0;
+  dropAccFrames = 0;
 
   isReplayMode = false;
   replayRecoder: ReplayRecorder = new ReplayRecorder();
@@ -72,7 +76,7 @@ export class TetrisGame {
     const mapHeight = document.body.offsetHeight - (window.device.mobile() ? 166 : 0) - 16;
     this.gameMap = new GameMap(20, 10, Math.min(28, Math.floor(mapHeight / 20)));
     this.tetrisWindow = new TetrisWindow(
-      this.gameMap, this.nextBlock, this.level, this.scoreProcessor);
+      this.gameMap, this.nextBlockQueue, this.level, this.scoreProcessor);
 
     const gameOverOverlay = new GameOverOverlay();
     gameOverOverlay.onRestart = () => {
@@ -107,6 +111,10 @@ export class TetrisGame {
       el.classList[isShow ? 'add' : 'remove']('show');
     }
     this.gameState.addAndRunOnce((gameState: GameState) => {
+      document.querySelector('.main').classList[
+        gameState == GameState.Playing ? 'add' : 'remove'
+      ]('playing');
+
       toggle(gameReadyOverlay.el, gameState == GameState.NotStarted);
       toggle(gamePauseOverlay.el, gameState == GameState.Paused);
       toggle(gameOverOverlay.el, gameState == GameState.End);
@@ -179,8 +187,6 @@ export class TetrisGame {
 
     this.setupUpdateLoop();
   }
-
-  updateAccTime = 0;
   
   onUpdate(dt: number) {
     gameKeyboardInputKeys.forEach((key) => {
@@ -195,23 +201,30 @@ export class TetrisGame {
       return;
     }
 
+    if (this.isLineClearing) {
+      return;
+    }
+
     if (this.isReplayMode) {
       const { frames } = this.replay;
       if (this.replayFrameIndex < frames.length) {
         const replayFrame = frames[this.replayFrameIndex];
         if (this.replayRecordFrameIndex === replayFrame.frame) {
-          this.doBlockAction(replayFrame.action);
+          this.inputAction = replayFrame.action;
           this.replayFrameIndex++;
         }
       } else if (this.replayRecordFrameIndex >= this.replay.endFrame) {
         this.gameOver();
         return;
       }
-    } else {
-      if (!this.isHardDropping && this.inputAction) {
-        this.doBlockAction(this.inputAction);
-        this.inputAction = null;
-      }
+    }
+
+    let isSoftDrop = false;
+
+    if (!this.isHardDropping && this.inputAction) {
+      isSoftDrop = this.inputAction == Action.Down;
+      this.doBlockAction(this.inputAction);
+      this.inputAction = null;
     }
 
     this.updateShadowBlock();
@@ -220,50 +233,78 @@ export class TetrisGame {
 
     const currentBlock = this.currentBlock.value;
 
+    let isLocked = false;
     if (this.isHardDropping) {
-      this.updateAccTime = 0;
-      while (currentBlock.fall());
-    } else {
-      this.updateAccTime += dt;
-      if (this.updateAccTime * 1000 < this.levelSpeedFrames * 16.666) {
-        return;
+      this.dropAccFrames = 0;
+      currentBlock.hardDrop();
+      this.shadowBlock.hide();
+      isLocked = true;
+      this.cancelLockDelay();
+    } if (isSoftDrop) {
+      isLocked = !currentBlock.fall();
+      if (isLocked) {
+        this.shadowBlock.hide();
       }
-      this.updateAccTime = 0;  
-    } 
+      this.cancelLockDelay();
+    } else {
+      this.dropAccFrames++;
+      if (this.dropAccFrames >= this.levelSpeedFrames) {
+        this.dropAccFrames = 0;
+        if (currentBlock.fall()) {
+          if (!currentBlock.canFall()) {
+            this.isLockDelayTime = true;
+            this.resetLockDelayIfIsTime();
+          }
+        } else {
+          this.shadowBlock.hide();
+          if (!this.isLockDelayTime) {
+            this.isLockDelayTime = true;
+            this.resetLockDelayIfIsTime();
+          }
+        }
+      }
 
-    if (this.isLineClearing) {
-      return;
+      if (this.isLockDelayTime) {
+        this.lockDelay--;
+
+        if (this.lockDelay <= 0) {
+          this.cancelLockDelay();
+          isLocked = !currentBlock.canFall();
+        }    
+      }
     }
 
-    if (!currentBlock.fall()) {
-      currentBlock.lock();
-      this.shadowBlock.hide();
-      this.scoreProcessor.onBottom();
+    if (isLocked) {
       if (this.isHardDropping) {
         this.isHardDropping = false;
         this.gameplayAudio.play('harddrop');
       } else {
         this.gameplayAudio.play('lock');
       }
-
-      const canClearLine = this.gameMap.checkClearLine((lines) => {
+      currentBlock.lock();
+      this.scoreProcessor.onBottom();
+      const clearLines = this.gameMap.checkClearLine((lines) => {
         this.isLineClearing = true;
       }, (lines) => {
-        this.isLineClearing = false;
         if (lines) {
           this.scoreProcessor.onClearLines(lines);
           this.levelLines += lines;
           this.checkUpLevel();
           this.gameplayAudio.play(`erase${lines}`);
         }
-        
-        if (canClearLine || currentBlock.gridRow > 0) {
-          this.currentBlock.value = this.nextBlock.value;
-          this.nextBlock.value = this.createBlock();
+        this.isLineClearing = false;
+        if (clearLines || currentBlock.gridRow > 0) {
+          this.currentBlock.value = this.nextBlockQueue.shift();
+          this.nextBlockQueue.add(this.createBlock());
         } else {
           this.gameOver();
         }
       });
+      this.gameMap.el.style.setProperty('--g', `${(clearLines + 1) * 4}px`);
+      this.gameMap.el.classList.add('g');
+      this.gameMap.el.ontransitionend = () => {
+        this.gameMap.el.classList.remove('g');
+      };
     }
   }
 
@@ -304,11 +345,24 @@ export class TetrisGame {
       this.gameMap.setBlockState(currentBlock);
     }
   }
+
+  resetLockDelayIfIsTime() {
+    this.lockDelay = 68 - this.levelSpeedFrames;
+  }
+
+  cancelLockDelay() {
+    if (this.isLockDelayTime) {
+      this.isLockDelayTime = false;
+      this.lockDelay = 0;
+    }
+  }
   
   restart() {
     this.gameMap.clear();
     this.isLineClearing = false;
     this.isHardDropping = false;
+    this.cancelLockDelay();
+    this.dropAccFrames = 0;
     this.scoreProcessor.reset();
     this.blockCount = 0;
 
@@ -330,7 +384,11 @@ export class TetrisGame {
     }
 
     this.currentBlock.value = this.createBlock();
-    this.nextBlock.value = this.createBlock();
+
+    this.nextBlockQueue.clear();
+    for (let n = 0; n < 4; n++) {
+      this.nextBlockQueue.add(this.createBlock());
+    }
 
     this.gameState.value = GameState.Playing;
 
@@ -378,29 +436,11 @@ export class TetrisGame {
             break;
         }
         break;
+      case Action.Rotate:
+      case Action.Left:
+      case Action.Right:
+        this.resetLockDelayIfIsTime();
       default:
-        const isGameReady = this.gameState.value == GameState.NotStarted;
-        if (isGameReady) {
-          switch (action) {
-            case Action.Up:
-            case Action.Right:
-              if (isGameReady && this.level.value < 29) {
-                this.level.value++;
-              }
-              break;
-            case Action.Down:
-            case Action.Left:
-              if (isGameReady && this.level.value > 0) {
-                this.level.value--;
-              }
-              break;
-            case Action.Rotate:
-              this.isReplayMode = true;
-              this.restart();
-          }
-          return;
-        }
-
         if (this.isReplayMode || this.gameState.value != GameState.Playing) {
           return;
         }
@@ -445,7 +485,7 @@ export class TetrisGame {
         }
         break;
       case Action.Down:
-        if (currentBlock.fall()) {
+        if (currentBlock.canFall()) {
           isRecord = true;
           this.gameplayAudio.play('move');
         }

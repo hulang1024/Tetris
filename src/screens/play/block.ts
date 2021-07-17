@@ -43,10 +43,20 @@ export class Block {
   private _type: number;
   get type() { return this._type; }
   set type(val) {
-    if (this._isShadow) {
-      this._type = val;
-      this.el.style.setProperty('--color', blockColorTable[this._type]);
+    this._type = val;
+    if (val == -1) {
+      return;
     }
+    const color = blockColorTable[this._type];
+    this.el.style.setProperty('--color', color);
+    const rgb: Record<string, number> = {
+      r: parseInt(color.substring(1, 3), 16),
+      g: parseInt(color.substring(3, 5), 16),
+      b: parseInt(color.substring(5, 7), 16)
+    };
+    ['r', 'g', 'b'].forEach((c) => {
+      this.el.style.setProperty(`--rgb-${c}`, rgb[c].toString());
+    });
   }
 
   // 方向
@@ -79,7 +89,7 @@ export class Block {
       }
     }
 
-    this._type = type;
+    this.type = type;
     this._dir = dir;
     this._isShadow = type == -1;
 
@@ -128,15 +138,22 @@ export class Block {
     }
   }
 
+  hardDrop() {
+    while (this.fall());
+  }
+
   lock() {
     this.el.classList.add('locked');
   }
 
   canFall(rows = 1) {
-    return this.canMove(this.gridRow + rows, this.gridCol);
+    this.map.easeBlockState(this);
+    const t = this.canMove(this.gridRow + rows, this.gridCol);
+    this.map.setBlockState(this);
+    return t;
   }
 
-  canMove(gridRow: number, gridCol: number) {
+  private canMove(gridRow: number, gridCol: number) {
     let ret: boolean | null = null;
     eachCells(this.value, (r, c) => {
       const gr = Math.max(0, gridRow + r);
@@ -148,7 +165,7 @@ export class Block {
     return ret ?? true;
   }
 
-  canRotate() {
+  private canRotate() {
     for (let r = 0; r < 4; r++) {
       for (let c = 0; c < 4; c++) {
         const i = r * 4 + c;

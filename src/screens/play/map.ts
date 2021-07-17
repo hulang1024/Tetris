@@ -54,9 +54,7 @@ export class GameMap {
   }
 
   addBlock(block: Block) {
-    if (!block.isShadow) {
-      this.setBlockState(block, block.type);
-    }
+    this.setBlockState(block, block.type);
     this.blocks.push(block);
     this.blockLayer.appendChild(block.el);
   }
@@ -66,6 +64,9 @@ export class GameMap {
   }
 
   setBlockState(block: Block, state = block.type) {
+    if (block.isShadow) {
+      return;
+    }
     eachCells(block.value, (r, c, i) => {
       const sr = block.gridRow + r;
       const sc = block.gridCol + c;
@@ -81,11 +82,10 @@ export class GameMap {
     if (idxs.length) {
       startClear(idxs.length);
       this.clearLines(idxs, cb);
-      return true;
     } else {
       cb(idxs.length);
-      return false;
     }
+    return idxs.length;
   }
 
   clearLines(lineIndexs: number[], cb: (lineCount: number) => void) {

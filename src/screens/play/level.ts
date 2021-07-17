@@ -23,7 +23,7 @@ export const levelSpeedTable: Record<number, number> = (() => {
 export const levelLinesTable: Record<number, number> = (() => {
   const table: Record<number, number> = {};
   for (let level = 0; level < 30; level++) {
-    table[level] = 3;
+    table[level] = 10;
   }
   return table;
 })();

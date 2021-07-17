@@ -20,6 +20,18 @@ export default class BindableList<T> extends Bindable<T[]> {
     this.changed.dispatch(this._value);
   }
 
+  shift() {
+    const e = this._value[0];
+    this.removeAt(0);
+    return e;
+  }
+
+  clear() {
+    while (this._value.length) {
+      this.removeAt(0);
+    }
+  }
+
   public removeIf(pred: (e: T) => boolean) {
     for (let i = 0; i < this._value.length; i++) {
       if (pred(this._value[i])) {
