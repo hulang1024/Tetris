@@ -295,6 +295,9 @@ export class TetrisGame {
         }
       });
       if (clearLines) {
+        if (this.isHardDropping) {
+          this.isHardDropping = false;
+        }
         this.gameplayAudio.play(`erase${clearLines}`);
       } else {
         if (this.isHardDropping) {
