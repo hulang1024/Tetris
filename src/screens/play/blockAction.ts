@@ -1,9 +1,9 @@
 export enum Action {
-  Up = 1,
-  Left,
+  Left = 1,
   Right,
   Down,
   HardDrop,
   Rotate,
+  CCWRotate,
   Enter,
 }

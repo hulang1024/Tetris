@@ -103,10 +103,10 @@ export class Block {
     }
   }
 
-  rotate() {
+  rotate(isCW = true) {
     this.map.easeBlockState(this);
     if (this.canRotate()) {
-      this._dir = (this.dir + 1) % 4;
+      this._dir = isCW ? (this.dir + 1) % 4 : this.dir > 0 ? (this.dir - 1) : 3;
       this.map.setBlockState(this);
       this.setPosition(this.gridRow, this.gridCol, true);
       return true;
@@ -116,14 +116,31 @@ export class Block {
     }
   }
 
-  left(v: 1 | -1) {
+  left(offset: number) {
+    if (offset == 0) {
+      return false;
+    }
+    let sign = Math.sign(offset);
+    let validOffset = 0;
     this.map.easeBlockState(this);
-    if (this.canMove(this.gridRow, this.gridCol + v)) {
-      this.setPosition(this.gridRow, this.gridCol + v);
+    
+    const maxValidOffset = Math.abs(offset);
+    while (validOffset < maxValidOffset) {
+      validOffset++;
+      if (!this.canMove(this.gridRow, this.gridCol + validOffset * sign)) {
+        validOffset--;
+        break;
+      }
+    }
+
+    if (validOffset > 0) {
+      this.setPosition(this.gridRow, this.gridCol + validOffset * sign);
       this.map.setBlockState(this);
       return true;
+    } else {
+      this.map.setBlockState(this);
+      return false;
     }
-    return false;
   }
 
   fall() {

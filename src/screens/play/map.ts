@@ -1,3 +1,4 @@
+import { framesToMS } from "../../utils/time";
 import { Block, eachCells, setCellPosition } from "./block";
 
 export class GameMap {
@@ -89,7 +90,7 @@ export class GameMap {
   }
 
   clearLines(lineIndexs: number[], cb: (lineCount: number) => void) {
-    const clearDuration = 16.666 * 10;
+    const clearDuration = framesToMS(10);
 
     for(let i = 0; i < lineIndexs.length; i++) {
       const r = lineIndexs[i];

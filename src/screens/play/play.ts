@@ -6,7 +6,7 @@ import { Action } from "./blockAction";
 import { levelLinesTable, levelSpeedTable } from "./level";
 import KeyboardState from "../../input/KeyboardState";
 import KeyboardHandler from "../../input/KeyboardHandler";
-import * as delay from "../../input/delay";
+import * as delay from "./delay";
 import TetrisGamepad, { TGamepadButton } from "../../input/tetrisGamepad";
 import Bindable from "../../utils/bindables/Bindable";
 import { ScoreProcessor } from "../../scoring/ScoreProcessor";
@@ -20,6 +20,7 @@ import { GameOverOverlay } from "./gameOverOverlay";
 import { GameReadyOverlay } from "./gameReadyOverlay";
 import { GamePauseOverlay } from "./gamePauseOverlay";
 import BindableList from "../../utils/bindables/BindableList";
+import { framesToMS } from "../../utils/time";
 
 enum GameState {
   NotStarted,
@@ -28,22 +29,11 @@ enum GameState {
   End
 }
 
-const gameKeyboardInputKeys = [
-  InputKey.Up, InputKey.W, InputKey.J,
-  InputKey.Down, InputKey.S,
-  InputKey.Right, InputKey.D,
-  InputKey.Left, InputKey.A,
-];
-const gameGamepadButtons = [
-  TGamepadButton.Up,
-  TGamepadButton.Right,
-  TGamepadButton.Down,
-  TGamepadButton.Left,
-  TGamepadButton.Rotate,
-];
+const dasGameKeyboardInputKeys: InputKey[] = [];
+const dasGameGamepadButtons: TGamepadButton[] = [];
 
 export class TetrisGame {
-  keyboardState: KeyboardState = new KeyboardState();
+  keyboardState: KeyboardState;
   gamepad: TetrisGamepad;
   inputBindingManager: InputBindingManager = new InputBindingManager();
   audioManager: AudioManager = new AudioManager();
@@ -65,8 +55,10 @@ export class TetrisGame {
   scoreProcessor: ScoreProcessor = new ScoreProcessor();
   isLineClearing = false;
   isHardDropping = false;
+  isARRTime = false;
   isLockDelayTime = false;
   lockDelay = 0;
+  arrAccFrames = 0;
   dropAccFrames = 0;
 
   isReplayMode = false;
@@ -146,30 +138,42 @@ export class TetrisGame {
       this.shadowBlock.show();
     });
 
-    new KeyboardHandler({
-      onKeyDown: (key, event) => {
-        if (event.repeat) {
-          return;
+    if (window.device.desktop()) {
+      this.keyboardState = new KeyboardState();
+      new KeyboardHandler({
+        onKeyDown: (key, event) => {
+          if (event.repeat) {
+            return;
+          }
+          this.onKeyDown(key, event);
+          this.keyboardState.keys.setPressed(key, true);
+        },
+        onKeyUp: (key, event) => {
+          if (event.repeat) {
+            return;
+          }
+          this.onKeyUp(key, event);
+          this.keyboardState.keys.setPressed(key, false);
+        },
+      });
+    } else {
+      this.gamepad = new TetrisGamepad({
+        onPress: (button: TGamepadButton) => {
+          let action = this.inputBindingManager.getActionByTGamepadButton(button);
+          if (action) {
+            this.onAction(action);
+          }
         }
-        this.onKeyDown(key, event);
-        this.keyboardState.keys.setPressed(key, true);
-      },
-      onKeyUp: (key, event) => {
-        if (event.repeat) {
-          return;
-        }
-        this.onKeyUp(key, event);
-        this.keyboardState.keys.setPressed(key, false);
-      },
-    });
+      });
+    }
 
-    this.gamepad = !window.device.mobile() ? null : new TetrisGamepad({
-      onPress: (button: TGamepadButton) => {
-        let action = this.inputBindingManager.getActionByTGamepadButton(button);
-        if (action) {
-          this.onAction(action);
-        }
-      }
+    [ Action.Left, Action.Right, Action.Down ].forEach((action) => {
+      this.inputBindingManager.getKeysByAction(action).forEach((key) => {
+        dasGameKeyboardInputKeys.push(key);
+      });
+      this.inputBindingManager.getTGamepadButtonsByAction(action).forEach((button) => {
+        dasGameGamepadButtons.push(button);
+      });
     });
 
     this.setupUpdateLoop();
@@ -177,20 +181,39 @@ export class TetrisGame {
   
   onUpdate(dt: number) {
     if (!this.inputAction) {
-      gameKeyboardInputKeys.forEach((key) => {
-        if (this.keyboardState.keys.isPressed(key)
-          && this.keyboardState.keys.getPressDuration(key) > delay.DAS) {
-          this.onAction(this.inputBindingManager.getActionByKey(key));
-        }
-      });
-      if (this.gamepad) {
-        gameGamepadButtons.forEach((btn) => {
+      let actionAfterDAS;
+      if (this.keyboardState) {
+        dasGameKeyboardInputKeys.forEach((key) => {
+          if (this.keyboardState.keys.isPressed(key)
+            && this.keyboardState.keys.getPressDuration(key) >= delay.DAS) {
+            actionAfterDAS = this.inputBindingManager.getActionByKey(key);
+          }
+        });
+      } else {
+        dasGameGamepadButtons.forEach((btn) => {
           if (this.gamepad.isPressed(btn)
-            && this.gamepad.getPressDuration(btn) > delay.DAS) {
-            this.onAction(this.inputBindingManager.getActionByTGamepadButton(btn));
+            && this.gamepad.getPressDuration(btn) >= delay.DAS) {
+            actionAfterDAS = this.inputBindingManager.getActionByTGamepadButton(btn);
           }
         });
       }
+      if (actionAfterDAS) {
+        if (actionAfterDAS == Action.Left || actionAfterDAS == Action.Right) {
+          if (!this.isARRTime) {
+            this.arrAccFrames = 0;
+            this.isARRTime = true;
+          }
+        } else {
+          this.isARRTime = false;
+        }
+        this.onAction(actionAfterDAS);
+      } else {
+        this.isARRTime = false;
+      }
+    }
+
+    if (this.isARRTime) {
+      this.arrAccFrames++;
     }
 
     if (this.gameState.value != GameState.Playing) {
@@ -366,7 +389,9 @@ export class TetrisGame {
     this.gameMap.clear();
     this.isLineClearing = false;
     this.isHardDropping = false;
+    this.isARRTime = false;
     this.cancelLockDelay();
+    this.arrAccFrames = 0;
     this.dropAccFrames = 0;
     this.scoreProcessor.reset();
     this.blockCount = 0;
@@ -454,15 +479,14 @@ export class TetrisGame {
         let canRepeat = false;
         const lastRepeatTime = this.actionLastRepeatTimeMap.get(action);
         if (lastRepeatTime) {
-          canRepeat = now - lastRepeatTime >
-            (action == Action.Down ? delay.BLOCK_DOWN : delay.BLOCK_H_MOVE);
+          canRepeat = now - lastRepeatTime > (action == Action.Down ? delay.BLOCK_DOWN : 0);
         } else {
           canRepeat = true;
         }
         if (canRepeat) {
           this.actionLastRepeatTimeMap.set(action, now);
-          this.inputAction = action;
         }
+        this.inputAction = action;
         break;
     }
   }
@@ -471,23 +495,34 @@ export class TetrisGame {
     const currentBlock = this.currentBlock.value;
     let isRecord = false;
     switch (action) {
-      case Action.Up:
       case Action.Rotate:
         if (currentBlock.rotate()) {
           isRecord = true;
           this.gameplayAudio.play('rotate');
         }
         break;
-      case Action.Left:
-        if (currentBlock.left(-1)) {
+      case Action.CCWRotate:
+        if (currentBlock.rotate(false)) {
           isRecord = true;
-          this.gameplayAudio.play('move');
+          this.gameplayAudio.play('rotate');
+        }
+        break;
+      case Action.Left:
+        if (currentBlock.left(- this.getMoveOffset())) {
+          isRecord = true;
+          this.arrAccFrames = 0;
+          if (!this.isARRTime) {
+            this.gameplayAudio.play('move');
+          }
         }
         break;
       case Action.Right:
-        if (currentBlock.left(+1)) {
+        if (currentBlock.left(+ this.getMoveOffset())) {
           isRecord = true;
-          this.gameplayAudio.play('move');
+          this.arrAccFrames = 0;
+          if (!this.isARRTime) {
+            this.gameplayAudio.play('move');
+          }
         }
         break;
       case Action.Down:
@@ -505,6 +540,10 @@ export class TetrisGame {
       const replayFrame = new ReplayFrame(this.replayRecordFrameIndex, action);
       this.replayRecoder.record(replayFrame);
     }
+  }
+
+  getMoveOffset() {
+    return this.isARRTime ? Math.floor(framesToMS(this.arrAccFrames) / Math.max(1, delay.ARR)) : 1;
   }
   
   onKeyDown(key: InputKey, event?: KeyboardEvent) {
