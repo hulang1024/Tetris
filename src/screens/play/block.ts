@@ -14,8 +14,8 @@ const blockTable = [
 export const typicalBlockDirTable = [0, 0, 1, 1, 1, 0, 0];
 
 const blockColorTable = [
-  '#f44336', '#85cc33', '#ffa500', '#ff69b4',
-  '#00bcd4', '#ebd300', '#9370db'
+  '#59b101', '#d71037', '#e35b03', '#2242c6',
+  '#0f9bd7', '#e39f04', '#af298a'
 ];
 
 export enum Dir {

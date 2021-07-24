@@ -7,13 +7,13 @@ import { levelLinesTable, levelSpeedTable } from "./level";
 import KeyboardState from "../../input/KeyboardState";
 import KeyboardHandler from "../../input/KeyboardHandler";
 import * as delay from "../../input/delay";
-import TetrisGamepad, { TetrisGamepadButton } from "../../input/tetrisGamepad";
+import TetrisGamepad, { TGamepadButton } from "../../input/tetrisGamepad";
 import Bindable from "../../utils/bindables/Bindable";
 import { ScoreProcessor } from "../../scoring/ScoreProcessor";
 import { Replay, ReplayFrame } from "../../replay/replay";
 import ReplayRecorder from "../../replay/ReplayRecorder";
 import { InputKey } from "../../input/keys";
-import { KeyBindingManager } from "../../input/bindings/keyBindings";
+import { InputBindingManager } from "../../input/bindings/index";
 import AudioManager from "../../audio/AudioManager";
 import { GameplayAudio } from "./gameplayAudio";
 import { GameOverOverlay } from "./gameOverOverlay";
@@ -34,11 +34,18 @@ const gameKeyboardInputKeys = [
   InputKey.Right, InputKey.D,
   InputKey.Left, InputKey.A,
 ];
+const gameGamepadButtons = [
+  TGamepadButton.Up,
+  TGamepadButton.Right,
+  TGamepadButton.Down,
+  TGamepadButton.Left,
+  TGamepadButton.Rotate,
+];
 
 export class TetrisGame {
   keyboardState: KeyboardState = new KeyboardState();
   gamepad: TetrisGamepad;
-  keyBindingManager: KeyBindingManager = new KeyBindingManager();
+  inputBindingManager: InputBindingManager = new InputBindingManager();
   audioManager: AudioManager = new AudioManager();
   gameplayAudio: GameplayAudio = new GameplayAudio(this.audioManager);
 
@@ -157,28 +164,8 @@ export class TetrisGame {
     });
 
     this.gamepad = !window.device.mobile() ? null : new TetrisGamepad({
-      onPress: (button: TetrisGamepadButton) => {
-        let action = null;
-        switch (button) {
-          case TetrisGamepadButton.Up:
-            action = Action.HardDrop;
-            break;
-          case TetrisGamepadButton.Rotate:
-            action = Action.Rotate;
-            break;
-          case TetrisGamepadButton.Down:
-            action = Action.Down;
-            break;
-          case TetrisGamepadButton.Right:
-            action = Action.Right;
-            break;
-          case TetrisGamepadButton.Left:
-            action = Action.Left;
-            break;
-          case TetrisGamepadButton.Enter:
-            action = Action.Enter;
-            break;
-        }
+      onPress: (button: TGamepadButton) => {
+        let action = this.inputBindingManager.getActionByTGamepadButton(button);
         if (action) {
           this.onAction(action);
         }
@@ -189,13 +176,22 @@ export class TetrisGame {
   }
   
   onUpdate(dt: number) {
-    gameKeyboardInputKeys.forEach((key) => {
-      if (this.keyboardState.keys.isPressed(key)
-        && this.keyboardState.keys.getPressDuration(key) > delay.DAS) {
-        this.onAction(this.keyBindingManager.getActionByKey(key));
+    if (!this.inputAction) {
+      gameKeyboardInputKeys.forEach((key) => {
+        if (this.keyboardState.keys.isPressed(key)
+          && this.keyboardState.keys.getPressDuration(key) > delay.DAS) {
+          this.onAction(this.inputBindingManager.getActionByKey(key));
+        }
+      });
+      if (this.gamepad) {
+        gameGamepadButtons.forEach((btn) => {
+          if (this.gamepad.isPressed(btn)
+            && this.gamepad.getPressDuration(btn) > delay.DAS) {
+            this.onAction(this.inputBindingManager.getActionByTGamepadButton(btn));
+          }
+        });
       }
-    });
-    this.gamepad?.onUpdate();
+    }
 
     if (this.gameState.value != GameState.Playing) {
       return;
@@ -307,11 +303,13 @@ export class TetrisGame {
           this.gameplayAudio.play('lock');
         }
       }
+      /*
       this.gameMap.el.style.setProperty('--g', `${(clearLines + 1) * 4}px`);
       this.gameMap.el.classList.add('g');
       this.gameMap.el.ontransitionend = () => {
         this.gameMap.el.classList.remove('g');
       };
+      */
     }
   }
 
@@ -382,6 +380,7 @@ export class TetrisGame {
       this.level.value = this.replay.level;
       this.blockGenerator.reset(this.replay.prngSeed);
     } else {
+      this.level.value = 0;
       this.blockGenerator.reset(new Date().getTime().toString());
       const replay = new Replay()
       replay.prngSeed = this.blockGenerator.seed;
@@ -525,7 +524,7 @@ export class TetrisGame {
         }
         break;
       default:
-        const action = this.keyBindingManager.getActionByKey(key);
+        const action = this.inputBindingManager.getActionByKey(key);
         if (action) {
           this.onAction(action);
         }

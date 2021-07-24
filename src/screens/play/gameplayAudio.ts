@@ -8,7 +8,7 @@ export class GameplayAudio {
   }
 
   play(name: string) {
-    const audio = this.audioManager.samples.get(`gameplay/drocelot/${name}`);
+    const audio = this.audioManager.samples.get(`gameplay/se/${name}`);
     audio.currentTime = 0;
     audio.play();
   }

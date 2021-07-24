@@ -89,7 +89,7 @@ export class GameMap {
   }
 
   clearLines(lineIndexs: number[], cb: (lineCount: number) => void) {
-    const clearDuration = 16.666 * 20;
+    const clearDuration = 16.666 * 10;
 
     for(let i = 0; i < lineIndexs.length; i++) {
       const r = lineIndexs[i];
@@ -162,7 +162,7 @@ export class GameMap {
           }
         }
         cb(lineIndexs.length);
-      }, 70);
+      }, 200 + 60);
     }, clearDuration);
   }
 

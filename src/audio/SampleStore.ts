@@ -1,7 +1,7 @@
 export default class SampleStore {
   private readonly sampleCache: { [name: string]: HTMLAudioElement } = {};
 
-  private volume = 1;
+  private volume = 0.6;
 
   constructor() {
     setTimeout(() => {
@@ -36,15 +36,15 @@ export default class SampleStore {
   private loadAll() {
     const audioModules: Record<string, string[]> = {
       gameplay: [
-        'go.mp3',
-        'move.mp3', 'rotate.mp3', 'lock.mp3', 'harddrop.mp3',
+        'go.wav',
+        'move.wav', 'rotate.ogg', 'lock.wav', 'harddrop.wav',
         'erase1.mp3', 'erase2.mp3', 'erase3.mp3', 'erase4.mp3'
       ]
     };
     const names: string[] = [];
     for (const moduleName in audioModules) {
       audioModules[moduleName].forEach((fileName) => {
-        names.push(`${moduleName}/drocelot/${fileName}`);
+        names.push(`${moduleName}/se/${fileName}`);
       });
     }
     names.forEach((name) => {

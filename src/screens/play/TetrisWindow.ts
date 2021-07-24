@@ -20,19 +20,19 @@ export class TetrisWindow {
     el.innerHTML = `
       <div class="stat">
         <div class="next bordered">
-          <div class="title">NEXT</div>
+          <div class="title">下个</div>
           <div class="block-container"></div>
         </div>
         <div class="score counter bordered">
-          <div class="title">SCORE</div>
+          <div class="title">分数</div>
           <div class="num">0</div>
         </div>
         <div class="level counter bordered">
-          <div class="title">LEVEL</div>
+          <div class="title">等级</div>
           <div class="num">0</div>
         </div>
         <div class="lines counter bordered">
-          <div class="title">LINES</div>
+          <div class="title">消行</div>
           <div class="num">0</div>
         </div>
       </div>

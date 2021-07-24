@@ -1,7 +1,7 @@
 import { Action } from "../../screens/play/blockAction";
 import { InputKey } from "../keys";
 
-class KeyBinding {
+export class KeyBinding {
   key: InputKey;
   action: Action;
 
@@ -11,7 +11,7 @@ class KeyBinding {
   }
 }
 
-function getDefaultBlockActionKeyBindings() {
+export function getDefaultBlockActionKeyBindings() {
   return [
     new KeyBinding(InputKey.Up, Action.Up),
     new KeyBinding(InputKey.W, Action.Up),
@@ -30,15 +30,4 @@ function getDefaultBlockActionKeyBindings() {
 
     new KeyBinding(InputKey.Enter, Action.Enter),
   ];
-}
-
-export class KeyBindingManager {
-  private keyBindings: KeyBinding[];
-  constructor() {
-    this.keyBindings = getDefaultBlockActionKeyBindings();
-  }
-
-  getActionByKey(key: InputKey) {
-    return this.keyBindings.find((binding) => binding.key == key)?.action ?? null;
-  }
 }

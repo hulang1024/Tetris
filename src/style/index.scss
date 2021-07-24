@@ -33,9 +33,6 @@ html,body {
 
   > .background {
     position: absolute;
-    background: var(--background-url);
-    background-size: cover;
-    background-repeat: no-repeat;
     width: 100%;
     height: 100%;
     user-select: none;
@@ -57,10 +54,6 @@ html,body {
 
     .gamepad {
       background: rgba(255, 255, 255, 0.9);
-    }
-
-    .map {
-      background: rgba(0,0,0,0.8);
     }
   }
 

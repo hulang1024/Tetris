@@ -1,6 +1,4 @@
-import { DAS } from "./delay";
-
-export enum TetrisGamepadButton {
+export enum TGamepadButton {
   Up,
   Right,
   Down,
@@ -11,20 +9,20 @@ export enum TetrisGamepadButton {
 
 const BUTTON_CLASS_NAMES = ['up', 'right', 'down', 'left', 'rotate', 'enter'];
 const BUTTONS = [
-  TetrisGamepadButton.Up,
-  TetrisGamepadButton.Right,
-  TetrisGamepadButton.Down,
-  TetrisGamepadButton.Left,
-  TetrisGamepadButton.Rotate,
-  TetrisGamepadButton.Enter
+  TGamepadButton.Up,
+  TGamepadButton.Right,
+  TGamepadButton.Down,
+  TGamepadButton.Left,
+  TGamepadButton.Rotate,
+  TGamepadButton.Enter
 ];
 
 export default class TetrisGamepad {
-  public readonly pressedStates: Map<TetrisGamepadButton, boolean> = new Map();
-  private readonly pressedStartTimeMap: Map<TetrisGamepadButton, number> = new Map();
-  onPress: (btn: TetrisGamepadButton) => void;
+  public readonly pressedStates: Map<TGamepadButton, boolean> = new Map();
+  private readonly pressedStartTimeMap: Map<TGamepadButton, number> = new Map();
+  onPress: (btn: TGamepadButton) => void;
 
-  constructor({ onPress }: { onPress: (btn: TetrisGamepadButton) => void }) {
+  constructor({ onPress }: { onPress: (btn: TGamepadButton) => void }) {
     this.onPress = onPress;
     const el = document.querySelector('.gamepad') as HTMLElement;
     el.style.display = 'flex';
@@ -64,23 +62,15 @@ export default class TetrisGamepad {
     });
   }
 
-  public onUpdate() {
-    BUTTONS.forEach((btn) => {
-      if (this.isPressed(btn) && this.getPressDuration(btn) > DAS) {
-        this.onPress(btn);
-      }
-    });
-  }
-
-  public isPressed(...btns: TetrisGamepadButton[]) {
+  public isPressed(...btns: TGamepadButton[]) {
     return btns.every((b) => this.pressedStates.get(b));
   }
 
-  public isPressedAny(...btns: TetrisGamepadButton[]) {
+  public isPressedAny(...btns: TGamepadButton[]) {
     return btns.find((b) => this.pressedStates.get(b));
   }
 
-  public getPressDuration(btn: TetrisGamepadButton) {
+  public getPressDuration(btn: TGamepadButton) {
     return new Date().getTime() - this.pressedStartTimeMap.get(btn);
   }
 }
