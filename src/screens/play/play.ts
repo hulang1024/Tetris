@@ -60,6 +60,7 @@ export class TetrisGame {
   lockDelay = 0;
   arrAccFrames = 0;
   dropAccFrames = 0;
+  softDropAccFrames = 0;
 
   isReplayMode = false;
   replayRecoder: ReplayRecorder = new ReplayRecorder();
@@ -68,7 +69,6 @@ export class TetrisGame {
   replayFrameIndex: number = 0;
 
   inputAction: Action;
-  actionLastRepeatTimeMap: Map<Action, number> = new Map();
 
   constructor() {
     this.blockGenerator = new BlockGenerator(new Date().getTime().toString());
@@ -198,7 +198,7 @@ export class TetrisGame {
         });
       }
       if (actionAfterDAS) {
-        if (actionAfterDAS == Action.Left || actionAfterDAS == Action.Right) {
+        if ([Action.Left, Action.Right].indexOf(actionAfterDAS) > -1) {
           if (!this.isARRTime) {
             this.arrAccFrames = 0;
             this.isARRTime = true;
@@ -260,11 +260,17 @@ export class TetrisGame {
       isLocked = true;
       this.cancelLockDelay();
     } if (isSoftDrop) {
-      isLocked = !currentBlock.fall();
-      if (isLocked) {
-        this.shadowBlock.hide();
+      this.softDropAccFrames++;
+      if (framesToMS(this.softDropAccFrames) >= delay.BLOCK_DOWN) {
+        this.softDropAccFrames = 0;
+        isLocked = !currentBlock.fall();
+        if (isLocked) {
+          this.shadowBlock.hide();
+        } else {
+          this.gameplayAudio.play('move');
+        }
+        this.cancelLockDelay();
       }
-      this.cancelLockDelay();
     } else {
       this.dropAccFrames++;
       if (this.dropAccFrames >= this.levelSpeedFrames) {
@@ -375,7 +381,7 @@ export class TetrisGame {
   }
 
   resetLockDelayIfIsTime() {
-    this.lockDelay = 68 - this.levelSpeedFrames;
+    this.lockDelay = 88 - this.levelSpeedFrames;
   }
 
   cancelLockDelay() {
@@ -393,6 +399,7 @@ export class TetrisGame {
     this.cancelLockDelay();
     this.arrAccFrames = 0;
     this.dropAccFrames = 0;
+    this.softDropAccFrames = 0;
     this.scoreProcessor.reset();
     this.blockCount = 0;
 
@@ -475,17 +482,6 @@ export class TetrisGame {
         if (this.isReplayMode || this.gameState.value != GameState.Playing) {
           return;
         }
-        const now = new Date().getTime();
-        let canRepeat = false;
-        const lastRepeatTime = this.actionLastRepeatTimeMap.get(action);
-        if (lastRepeatTime) {
-          canRepeat = now - lastRepeatTime > (action == Action.Down ? delay.BLOCK_DOWN : 0);
-        } else {
-          canRepeat = true;
-        }
-        if (canRepeat) {
-          this.actionLastRepeatTimeMap.set(action, now);
-        }
         this.inputAction = action;
         break;
     }
@@ -528,7 +524,6 @@ export class TetrisGame {
       case Action.Down:
         if (currentBlock.canFall()) {
           isRecord = true;
-          this.gameplayAudio.play('move');
         }
         break;
       case Action.HardDrop:
